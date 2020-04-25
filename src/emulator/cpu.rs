@@ -1,9 +1,46 @@
 use crate::emulator::mmu::Mmu;
+use std::fs::read;
 
 type Instruction    = u64;
 
 const NREGISTERS: usize = 32;
 const INIT_PC: usize = 0;
+
+// General Registers (standardized names as part of the RISC-V application binary interface (ABI))
+pub enum Registers {
+    ZERO,   // x0:  hardwired to 0, ignores writes
+    RA,     // x1:  return address for jumps
+    SP,     // x2:  stack pointer
+    GP,     // x3:  global pointer
+    TP,     // x4:  thread pointer
+    T0,     // x5:  temporary register 0
+    T1,     // x6:  temporary register 1
+    T2,     // x7:  temporary register 2
+    FP,     // x8:  frame pointer
+    S1,     // x9:  saved register 1
+    A0,     // x10: return value or function argument 0
+    A1,     // x11: return value or function argument 1
+    A2,     // x12: function argument 2
+    A3,     // x13: function argument 3
+    A4,     // x14: function argument 4
+    A5,     // x15: function argument 5
+    A6,     // x16: function argument 6
+    A7,     // x17: function argument 7
+    S2,     // x18: saved regiser 2
+    S3,     // x19: saved regiser 3
+    S4,     // x20: saved regiser 4
+    S5,     // x21: saved regiser 5
+    S6,     // x22: saved regiser 6
+    S7,     // x23: saved regiser 7
+    S8,     // x24: saved regiser 8
+    S9,     // x25: saved regiser 9
+    S10,    // x26: saved regiser 10
+    S11,    // x27: saved regiser 11
+    T3,     // x28: temporary register 3
+    T4,     // x29: temporary register 4
+    T5,     // x30: temporary register 5
+    T6,     // x31: temporary register 6
+}
 
 pub struct Cpu {
     pub register: [u64; NREGISTERS],        // X Registers
@@ -19,6 +56,16 @@ impl Cpu {
             instruction: 0,
             pc: INIT_PC,
             mmu: Mmu::new()
+        }
+    }
+
+    pub fn load(&mut self, filename: &str) {
+        let binary = read(filename).unwrap();
+
+        let mut i = 0;
+        for byte in binary {
+            self.mmu.write8(i, byte);
+            i += 1;
         }
     }
 
