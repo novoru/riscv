@@ -28,10 +28,14 @@ impl Cpu {
     }
 
     pub fn execute(&mut self) {
-        match self.instruction & 0x7F {
-            0b0110011 => self.decode_rtype(),
-            0b0010011 => self.decode_itype(),
-            _ => unimplemented!(),
+        let opcode: u8 = (self.instruction & 0x7F) as u8;
+        
+        match opcode {
+            // R-type
+            0b0110011   => self.decode_rtype(),
+            // I-type
+            0b0010011   => self.decode_itype(),
+            _           => unimplemented!(),
         }
     }
 
