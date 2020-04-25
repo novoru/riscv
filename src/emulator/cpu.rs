@@ -116,7 +116,8 @@ impl Cpu {
 
     fn decode_itype(&mut self) {
         // Decode instruction
-        let imm:    i16     = ((self.instruction >> 20) & 0xFFF) as i16;
+        let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -127,6 +128,15 @@ impl Cpu {
             // SLTI
             0b010   => {
                 if (self.register[rs1] as i64) < (imm as i64) {
+                    self.register[rd] = 1;
+                }
+                else {
+                    self.register[rd] = 0;
+                }
+            },
+            // SLTIU
+            0b011   => {
+                if (self.register[rs1] as u64) < (imm as u64) {
                     self.register[rd] = 1;
                 }
                 else {
