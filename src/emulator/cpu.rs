@@ -143,6 +143,12 @@ impl Cpu {
                     self.register[rd] = 0;
                 }
             },
+            // XORI
+            0b100   => self.register[rd] = ((self.register[rs1] as i64) ^ (imm as i64)) as u64,
+            // ORI
+            0b110   => self.register[rd] = ((self.register[rs1] as i64) | (imm as i64)) as u64,
+            // ANDI
+            0b111   => self.register[rd] = ((self.register[rs1] as i64) & (imm as i64)) as u64,
             _       => unimplemented!(),
         }
     }
