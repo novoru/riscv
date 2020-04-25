@@ -1,4 +1,4 @@
-const MEMORY_SIZE: usize = 1024 * 4;     // 4KiB
+pub const MEMORY_SIZE: usize = 1024 * 4;     // 4KiB
 
 // Physical Memory
 pub struct Memory {

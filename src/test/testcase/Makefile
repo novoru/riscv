@@ -2,9 +2,9 @@ LD = riscv64-linux-gnu-ld
 AS = riscv64-linux-gnu-as
 
 CFLAGS  = -nostdlib -O0
-ASFLAGS = -fno-pic -march=rv64i
+ASFLAGS = -fno-pic -march=rv64i -mabi=lp64
 LDFLAGS = -e start --oformat=binary
-TARGETS = add addi
+TARGETS = add addi slti
 
 SRCS=$(wildcard *.s)
 OBJS=$(SRCS:.s=.o)

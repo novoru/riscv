@@ -1,4 +1,5 @@
 use crate::emulator::mmu::Mmu;
+use crate::emulator::memory::MEMORY_SIZE;
 use std::fs::read;
 
 type Instruction    = u64;
@@ -59,14 +60,21 @@ impl Cpu {
         }
     }
 
-    pub fn load(&mut self, filename: &str) {
+    pub fn load(&mut self, filename: &str) -> usize {
         let binary = read(filename).unwrap();
+        let len = binary.len();
 
-        let mut i = 0;
+        if len > MEMORY_SIZE {
+            panic!("[ERROR] too large binary({}): {} Byte", filename, len);
+        }
+        
+        let mut i = 0;        
         for byte in binary {
             self.mmu.write8(i, byte);
             i += 1;
         }
+
+        len
     }
 
     pub fn fetch(&mut self) {
@@ -116,6 +124,15 @@ impl Cpu {
         match funct3 {
             // ADDI
             0b000   => self.register[rd] = ((self.register[rs1] as i64) + (imm as i64)) as u64,
+            // SLTI
+            0b010   => {
+                if (self.register[rs1] as i64) < (imm as i64) {
+                    self.register[rd] = 1;
+                }
+                else {
+                    self.register[rd] = 0;
+                }
+            },
             _       => unimplemented!(),
         }
     }
