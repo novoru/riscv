@@ -44,8 +44,8 @@ pub enum Registers {
 }
 
 pub struct Cpu {
-    pub register: [u64; NREGISTERS],        // X Registers
-    pub instruction: Instruction,           // Current istruciton
+    pub register: [u64; NREGISTERS],        // General registers
+    pub instruction: Instruction,           // Current instruciton
     pub pc: usize,                          // Program counter
     pub mmu: Mmu,                           // MMU (Memory Management Unit)
 }
@@ -83,6 +83,8 @@ impl Cpu {
     }
 
     pub fn execute(&mut self) {
+        let imm:    u32 = ((self.instruction >> 12) & 0xF_FFFF) as u32;
+        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
         let opcode: u8 = (self.instruction & 0x7F) as u8;
         
         match opcode {
@@ -90,6 +92,14 @@ impl Cpu {
             0b0110011   => self.decode_rtype(),
             // I-type
             0b0010011   => self.decode_itype(),
+            // LUI
+            0b0110111   => {
+                self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64;
+            },
+            // AUIPC
+            0b0010111   => {
+                self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64 + self.pc as u64;
+            },
             _           => unimplemented!(),
         }
     }
@@ -118,6 +128,7 @@ impl Cpu {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        println!("imm: {:012b}", imm);
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -125,6 +136,8 @@ impl Cpu {
         match funct3 {
             // ADDI
             0b000   => self.register[rd] = ((self.register[rs1] as i64) + (imm as i64)) as u64,
+            // SLLI
+            0b001   => self.register[rd] = ((self.register[rs1] as u64) << (imm as u64)) as u64,
             // SLTI
             0b010   => {
                 if (self.register[rs1] as i64) < (imm as i64) {
@@ -145,6 +158,16 @@ impl Cpu {
             },
             // XORI
             0b100   => self.register[rd] = ((self.register[rs1] as i64) ^ (imm as i64)) as u64,
+            // SRLI or SRAI
+            0b101   => {
+                match (imm >> 5) & 0x7F {
+                    // SRLI
+                    0b0000_0000 => self.register[rd] = ((self.register[rs1] as u64) >> (imm & 0x1F)) as u64,
+                    // SRAI
+                    0b0010_0000 => self.register[rd] = ((self.register[rs1] as i64) >> (imm & 0x1F)) as u64,
+                    _           => unimplemented!(),
+                }
+            },
             // ORI
             0b110   => self.register[rd] = ((self.register[rs1] as i64) | (imm as i64)) as u64,
             // ANDI
