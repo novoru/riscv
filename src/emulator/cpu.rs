@@ -68,7 +68,7 @@ impl Cpu {
             panic!("[ERROR] too large binary({}): {} Byte", filename, len);
         }
         
-        let mut i = 0;        
+        let mut i = 0;
         for byte in binary {
             self.mmu.write8(i, byte);
             i += 1;
@@ -83,21 +83,22 @@ impl Cpu {
     }
 
     pub fn execute(&mut self) {
+        // Decode instruction
         let imm:    u32 = ((self.instruction >> 12) & 0xF_FFFF) as u32;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
         let opcode: u8 = (self.instruction & 0x7F) as u8;
         
         match opcode {
             // R-type
-            0b0110011   => self.decode_rtype(),
+            0b011_0011   => self.decode_rtype(),
             // I-type
-            0b0010011   => self.decode_itype(),
+            0b001_0011   => self.decode_itype(),
             // LUI
-            0b0110111   => {
+            0b011_0111   => {
                 self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64;
             },
             // AUIPC
-            0b0010111   => {
+            0b001_0111   => {
                 self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64 + self.pc as u64;
             },
             _           => unimplemented!(),
@@ -113,10 +114,47 @@ impl Cpu {
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
 
         match funct7 {
-            0b0000000 => {    
+            0b000_0000 => {    
                 match funct3 {
                     // ADD
                     0b000   => self.register[rd] = self.register[rs1] + self.register[rs2],
+                    // SLL
+                    0b001   => self.register[rd] = self.register[rs1] << self.register[rs2],
+                    // SLT
+                    0b010   => {
+                        if (self.register[rs1] as i64) < (self.register[rs2] as i64) {
+                            self.register[rd] = 1;
+                        }
+                        else {
+                            self.register[rd] = 0;
+                        }
+                    },
+                    // SLTU
+                    0b011   => {
+                        if (self.register[rs1] as u64) < (self.register[rs2] as u64) {
+                            self.register[rd] = 1;
+                        }
+                        else {
+                            self.register[rd] = 0;
+                        }
+                    },
+                    // XOR
+                    0b100   => self.register[rd] = self.register[rs1] ^ self.register[rs2],
+                    // SRL
+                    0b101   => self.register[rd] = self.register[rs1] >> self.register[rs2],
+                    // OR
+                    0b110   => self.register[rd] = self.register[rs1] | self.register[rs2],
+                    // AND
+                    0b111   => self.register[rd] = self.register[rs1] & self.register[rs2],
+                    _       => unimplemented!(),
+                }
+            },
+            0b010_0000       => {
+                match funct3 {
+                    // SUB
+                    0b000   => self.register[rd] = ((self.register[rs1] as i64) - (self.register[rs2] as i64)) as u64,
+                    // SRA
+                    0b101   => self.register[rd] = (self.register[rs1] as i64 >> self.register[rs2]) as u64,
                     _       => unimplemented!(),
                 }
             },
@@ -128,7 +166,6 @@ impl Cpu {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
-        println!("imm: {:012b}", imm);
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -158,7 +195,6 @@ impl Cpu {
             },
             // XORI
             0b100   => self.register[rd] = ((self.register[rs1] as i64) ^ (imm as i64)) as u64,
-            // SRLI or SRAI
             0b101   => {
                 match (imm >> 5) & 0x7F {
                     // SRLI
