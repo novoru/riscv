@@ -197,7 +197,7 @@ pub fn test_auipc() {
         cpu.execute();
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_F004);
+    assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_F000);
 
 }
 
@@ -370,5 +370,87 @@ pub fn test_nop() {
     }
     
     assert_eq!(cpu.register[Registers::ZERO as usize], 0);
+
+}
+
+#[test]
+pub fn test_beq() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/beq") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T0 as usize], 2);
+
+}
+
+#[test]
+pub fn test_bne() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/bne") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T0 as usize], 2);
+
+}
+
+#[test]
+pub fn test_jal() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/jal") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T0 as usize], 11);
+    assert_eq!(cpu.register[Registers::RA as usize], 8);
+
+}
+
+#[test]
+pub fn test_jalr() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/jalr") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T0 as usize], 11);
+    assert_eq!(cpu.register[Registers::T1 as usize], 12);
 
 }

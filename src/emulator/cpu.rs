@@ -45,7 +45,7 @@ pub enum Registers {
 
 pub struct Cpu {
     pub register: [u64; NREGISTERS],        // General registers
-    pub instruction: Instruction,           // Current instruciton
+    pub instruction: Instruction,           // Current instruction
     pub pc: usize,                          // Program counter
     pub mmu: Mmu,                           // MMU (Memory Management Unit)
 }
@@ -79,7 +79,6 @@ impl Cpu {
 
     pub fn fetch(&mut self) {
         self.instruction = self.mmu.read64(self.pc);
-        self.pc += 4;
     }
 
     pub fn execute(&mut self) {
@@ -90,19 +89,44 @@ impl Cpu {
         
         match opcode {
             // R-type
-            0b011_0011   => self.decode_rtype(),
+            0b011_0011  => self.decode_rtype(),
             // I-type
-            0b001_0011   => self.decode_itype(),
+            0b001_0011  => self.decode_itype(),
             // LUI
-            0b011_0111   => {
+            0b011_0111  => {
                 self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64;
             },
             // AUIPC
-            0b001_0111   => {
+            0b001_0111  => {
                 self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64 + self.pc as u64;
+            },
+            // JAL
+            0b110_1111  => {
+                // signed offset in multiples of 2 bytes
+                let mut offset: i32   = (((self.instruction & 0x8000_0000) >> 11) |     // imm[20]
+                                         ((self.instruction & 0x7FE0_0000) >> 20) |     // imm[10:1]
+                                         ((self.instruction & 0x100000)    >>  9) |     // imm[11]
+                                          (self.instruction  & 0xFF000)) as i32;        // imm[19:12]
+                offset = ((offset + (0b1000_0000_0000_0000)) & (0xFFFFF)) - 0b1000_0000_0000_0000;        // sign extention
+                self.register[rd] = self.pc as u64 + 4 as u64;
+                self.pc = (self.pc as i64 - 4 + offset as i64) as usize;
+            },
+            // B-type
+            0b110_0011  => self.decode_btype(),
+            // JALR
+            0b110_0111  => {
+                // Decode instruction
+                let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
+                imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+                let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+                let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+
+                self.register[rd] = ((self.pc as u64) + 4) & 0xFFFF_FFFF_FFFF_FFFE;
+                self.pc = (self.register[rs1] as i64 - 4 + imm as i64) as usize;
             },
             _           => unimplemented!(),
         }
+        self.pc += 4;
     }
 
     fn decode_rtype(&mut self) {
@@ -211,5 +235,33 @@ impl Cpu {
             _       => unimplemented!(),
         }
     }
-        
+
+    fn decode_btype(&mut self) {
+        // Decode instruction
+        let mut imm: i16    = (((self.instruction & 0x8000_0000_0000_0000) >> 18) |
+                               ((self.instruction & 0x80) << 4) |
+                               ((self.instruction & 0x7E00_0000_0000_0000) >> 20) |
+                               ((self.instruction & 0x700) >> 7)) as i16;
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+
+        match funct3 {
+            // BEQ
+            0b000   => {
+                if self.register[rs1] == self.register[rs2] {
+                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                }
+            },
+            // BNE
+            0b001   => {
+                if self.register[rs1] != self.register[rs2] {
+                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                }
+            },
+            _       => unimplemented!(),
+        }
+    }
+
 }
