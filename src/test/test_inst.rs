@@ -454,3 +454,87 @@ pub fn test_jalr() {
     assert_eq!(cpu.register[Registers::T1 as usize], 12);
 
 }
+
+#[test]
+pub fn test_blt() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/blt") / 4;
+
+    for _ in 0 .. len {
+        eprintln!("[INFO] pc: {}", cpu.pc);
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T2 as usize], 32);
+
+}
+
+#[test]
+pub fn test_bltu() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/bltu") / 4;
+
+    for _ in 0 .. len {
+        eprintln!("[INFO] pc: 0x{:08x}", cpu.pc);
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T2 as usize], 24);
+
+}
+
+#[test]
+pub fn test_bge() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/bge") / 4;
+
+    for _ in 0 .. len {
+        eprintln!("[INFO] pc: 0x{:08x}", cpu.pc);
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T2 as usize], 24);
+
+}
+
+#[test]
+pub fn test_bgeu() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/bgeu") / 4;
+
+    for _ in 0 .. len {
+        eprintln!("[INFO] pc: 0x{:08x}", cpu.pc);
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+    
+    assert_eq!(cpu.register[Registers::T2 as usize], 32);
+
+}

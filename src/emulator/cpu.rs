@@ -241,7 +241,7 @@ impl Cpu {
         let mut imm: i16    = (((self.instruction & 0x8000_0000_0000_0000) >> 18) |
                                ((self.instruction & 0x80) << 4) |
                                ((self.instruction & 0x7E00_0000_0000_0000) >> 20) |
-                               ((self.instruction & 0x700) >> 7)) as i16;
+                               ((self.instruction & 0xF00) >> 7)) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
@@ -257,6 +257,33 @@ impl Cpu {
             // BNE
             0b001   => {
                 if self.register[rs1] != self.register[rs2] {
+                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                }
+            },
+            // BLT
+            0b100   => {
+                if (self.register[rs1] as i64) < (self.register[rs2] as i64){
+                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                }
+            },
+            // BGE
+            0b101   => {
+                if (self.register[rs1] as i64) >= (self.register[rs2] as i64){
+                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                }
+            },
+            // BLTU
+            0b110   => {
+                eprintln!(" [INFO] pc: 0x{:08x}", self.pc);
+                eprintln!(" [INFO] imm: {}", imm);
+                if self.register[rs1] < self.register[rs2] {
+                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                }
+                eprintln!(" [INFO] pc: 0x{:08x}", self.pc);
+            },
+            // BGEU
+            0b111   => {
+                if (self.register[rs1]) >= (self.register[rs2]){
                     self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
                 }
             },
