@@ -88,18 +88,18 @@ impl Cpu {
         let opcode: u8 = (self.instruction & 0x7F) as u8;
         
         match opcode {
+            // LOAD
+            0b000_0011  => self.decode_load(),
+            // STORE
+            0b010_0011  => self.decode_store(),
             // R-type
             0b011_0011  => self.decode_rtype(),
             // I-type
             0b001_0011  => self.decode_itype(),
             // LUI
-            0b011_0111  => {
-                self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64;
-            },
+            0b011_0111  => self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64,
             // AUIPC
-            0b001_0111  => {
-                self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64 + self.pc as u64;
-            },
+            0b001_0111  => self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64 + self.pc as u64,
             // JAL
             0b110_1111  => {
                 // signed offset in multiples of 2 bytes
@@ -274,18 +274,83 @@ impl Cpu {
             },
             // BLTU
             0b110   => {
-                eprintln!(" [INFO] pc: 0x{:08x}", self.pc);
-                eprintln!(" [INFO] imm: {}", imm);
                 if self.register[rs1] < self.register[rs2] {
                     self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
                 }
-                eprintln!(" [INFO] pc: 0x{:08x}", self.pc);
             },
             // BGEU
             0b111   => {
                 if (self.register[rs1]) >= (self.register[rs2]){
                     self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
                 }
+            },
+            _       => unimplemented!(),
+        }
+    }
+
+    fn decode_load(&mut  self) {
+        // Decode instruction
+        let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
+        imm = ((imm + (0b1000_0000_0000)) & 0xFFF) - 0b1000_0000_0000;     // sign extention
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+
+        match funct3 {
+            // LB
+            0b000   => {
+                let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
+                let byte: u8        = self.mmu.read8(addr);
+                let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extention
+                self.register[rd]   = data as u64;
+            },
+            // LH
+            0b001   => {
+                let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
+                let hword: u16      = self.mmu.read16(addr);
+                let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extention
+                self.register[rd]   = data as u64;
+            },
+            // LW
+            0b010   => {
+                let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
+                let word: u32       = self.mmu.read32(addr);
+                let data: i64       = ((word as i64 + 0b1000_0000_0000_0000_0000_0000_0000_0000) & 0xFFFF_FFFF)
+                                      - 0b1000_0000_0000_0000_0000_0000_0000_0000;   // sign extention
+                self.register[rd]   = data as u64;
+            },
+            _       => unimplemented!(),
+        }
+
+    }
+
+    fn decode_store(&mut self) {
+        // Decode instruction
+        let mut imm: i16    = (((self.instruction & 0xFE00_0000_0000_0000) >> 20) |
+                               ((self.instruction & 0xF80) >> 7)) as i16;
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+
+        match funct3{
+            // SB
+            0b000   => {
+                let addr: usize = (self.register[rs1] as i64 + imm as i64) as usize;
+                let byte: u8    = (self.register[rs2] & 0xFF) as u8;
+                self.mmu.write8(addr, byte);
+            },
+            // SH
+            0b001   => {
+                let addr: usize = (self.register[rs1] as i64 + imm as i64) as usize;
+                let hword: u16  = (self.register[rs2] & 0xFFFF) as u16;
+                self.mmu.write16(addr, hword);
+            },
+            // SW
+            0b010   => {
+                let addr: usize = (self.register[rs1] as i64 + imm as i64) as usize;
+                let word: u32   = (self.register[rs2] & 0xFFFF_FFFF) as u32;
+                self.mmu.write32(addr, word);
             },
             _       => unimplemented!(),
         }

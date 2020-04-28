@@ -8,7 +8,8 @@ LDFLAGS = -e start --oformat=binary
 OBJFLAGS = -O binary --only-section=.text
 TARGETS = add addi slti sltiu andi ori xori slli srli srai\
 		  lui auipc slt sltu and or xor sll srl sub sra nop\
-		  beq bne blt bltu bge bgeu jal jalr
+		  beq bne blt bltu bge bgeu jal jalr\
+		  lsb lsh lsw
 
 SRCS=$(wildcard *.s)
 OBJS=$(SRCS:.s=.o)

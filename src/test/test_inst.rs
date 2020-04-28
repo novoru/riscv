@@ -464,7 +464,6 @@ pub fn test_blt() {
     let len = cpu.load("./src/test/testcase/blt") / 4;
 
     for _ in 0 .. len {
-        eprintln!("[INFO] pc: {}", cpu.pc);
         cpu.fetch();
         cpu.execute();
         if cpu.pc >= (len * 4) {
@@ -485,7 +484,6 @@ pub fn test_bltu() {
     let len = cpu.load("./src/test/testcase/bltu") / 4;
 
     for _ in 0 .. len {
-        eprintln!("[INFO] pc: 0x{:08x}", cpu.pc);
         cpu.fetch();
         cpu.execute();
         if cpu.pc >= (len * 4) {
@@ -506,7 +504,6 @@ pub fn test_bge() {
     let len = cpu.load("./src/test/testcase/bge") / 4;
 
     for _ in 0 .. len {
-        eprintln!("[INFO] pc: 0x{:08x}", cpu.pc);
         cpu.fetch();
         cpu.execute();
         if cpu.pc >= (len * 4) {
@@ -527,7 +524,6 @@ pub fn test_bgeu() {
     let len = cpu.load("./src/test/testcase/bgeu") / 4;
 
     for _ in 0 .. len {
-        eprintln!("[INFO] pc: 0x{:08x}", cpu.pc);
         cpu.fetch();
         cpu.execute();
         if cpu.pc >= (len * 4) {
@@ -536,5 +532,71 @@ pub fn test_bgeu() {
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 32);
+
+}
+
+#[test]
+pub fn test_lsb() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/lsb") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+
+    let addr = cpu.register[Registers::A0 as usize] as usize;
+    assert_eq!(cpu.mmu.read64(addr), 0x0000_0000_0000_00DD);
+    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFDD);
+
+}
+
+#[test]
+pub fn test_lsh() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/lsh") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+
+    let addr = cpu.register[Registers::A0 as usize] as usize;
+    assert_eq!(cpu.mmu.read64(addr), 0x0000_0000_0000_FFFF);
+    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFFF);
+
+}
+
+#[test]
+pub fn test_lsw() {
+    use super::super::emulator;
+    use emulator::cpu::{ Cpu, Registers };
+    let mut cpu = Cpu::new();
+
+    let len = cpu.load("./src/test/testcase/lsw") / 4;
+
+    for _ in 0 .. len {
+        cpu.fetch();
+        cpu.execute();
+        if cpu.pc >= (len * 4) {
+            break;
+        }
+    }
+
+    let addr = cpu.register[Registers::A0 as usize] as usize;
+    assert_eq!(cpu.mmu.read64(addr), 0x0000_0000_FFFF_F000);
+    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_F000);
 
 }
