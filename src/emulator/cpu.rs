@@ -60,7 +60,7 @@ impl Cpu {
         }
     }
 
-    pub fn load(&mut self, filename: &str) -> usize {
+    pub fn load(&mut self, filename: &String) -> usize {
         let binary = read(filename).unwrap();
         let len = binary.len();
 
@@ -78,9 +78,11 @@ impl Cpu {
     }
 
     pub fn run(&mut self) {
-        self.fetch();
-        self.execute();
-        self.pc += 4;
+        loop {
+            self.fetch();
+            self.execute();
+            self.pc += 4;
+        }
     }
 
     pub fn fetch(&mut self) {
@@ -143,7 +145,7 @@ impl Cpu {
             // FENCE
             0b000_1111  => return,      // treat as nop
             // SYSTEM (ECALL/EBREAK)
-            0b1110011 => return,        // treat as nop
+            0b1110011   => return,        // treat as nop
             _           => unimplemented!(),
         }
     }

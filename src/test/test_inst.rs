@@ -4,7 +4,7 @@ pub fn test_addi() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/addi") / 4;
+    let len = cpu.load(&"./src/test/testcase/addi".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -21,7 +21,7 @@ pub fn test_add() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/add") / 4;
+    let len = cpu.load(&"./src/test/testcase/add".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -39,7 +39,7 @@ pub fn test_slti() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/slti") / 4;
+    let len = cpu.load(&"./src/test/testcase/slti".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -57,7 +57,7 @@ pub fn test_sltiu() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/sltiu") / 4;
+    let len = cpu.load(&"./src/test/testcase/sltiu".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -75,7 +75,7 @@ pub fn test_andi() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/andi") / 4;
+    let len = cpu.load(&"./src/test/testcase/andi".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -93,7 +93,7 @@ pub fn test_ori() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/ori") / 4;
+    let len = cpu.load(&"./src/test/testcase/ori".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -111,7 +111,7 @@ pub fn test_xori() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/xori") / 4;
+    let len = cpu.load(&"./src/test/testcase/xori".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -129,7 +129,7 @@ pub fn test_slli() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/slli") / 4;
+    let len = cpu.load(&"./src/test/testcase/slli".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -147,7 +147,7 @@ pub fn test_srli() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/srli") / 4;
+    let len = cpu.load(&"./src/test/testcase/srli".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -165,7 +165,7 @@ pub fn test_srai() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/srai") / 4;
+    let len = cpu.load(&"./src/test/testcase/srai".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -183,7 +183,7 @@ pub fn test_lui() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/lui") / 4;
+    let len = cpu.load(&"./src/test/testcase/lui".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -201,7 +201,7 @@ pub fn test_auipc() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/auipc") / 4;
+    let len = cpu.load(&"./src/test/testcase/auipc".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -219,7 +219,7 @@ pub fn test_slt() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/slt") / 4;
+    let len = cpu.load(&"./src/test/testcase/slt".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -237,7 +237,7 @@ pub fn test_sltu() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/sltu") / 4;
+    let len = cpu.load(&"./src/test/testcase/sltu".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -255,7 +255,7 @@ pub fn test_and() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/and") / 4;
+    let len = cpu.load(&"./src/test/testcase/and".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -273,7 +273,7 @@ pub fn test_or() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/or") / 4;
+    let len = cpu.load(&"./src/test/testcase/or".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -291,7 +291,7 @@ pub fn test_xor() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/xor") / 4;
+    let len = cpu.load(&"./src/test/testcase/xor".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -309,7 +309,7 @@ pub fn test_sll() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/sll") / 4;
+    let len = cpu.load(&"./src/test/testcase/sll".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -327,7 +327,7 @@ pub fn test_srl() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/srl") / 4;
+    let len = cpu.load(&"./src/test/testcase/srl".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -345,7 +345,7 @@ pub fn test_sub() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/sub") / 4;
+    let len = cpu.load(&"./src/test/testcase/sub".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -363,7 +363,7 @@ pub fn test_sra() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/sra") / 4;
+    let len = cpu.load(&"./src/test/testcase/sra".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -381,7 +381,7 @@ pub fn test_nop() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/nop") / 4;
+    let len = cpu.load(&"./src/test/testcase/nop".to_string()) / 4;
 
     assert_eq!(cpu.register[Registers::ZERO as usize], 0);
 
@@ -401,7 +401,7 @@ pub fn test_beq() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/beq") / 4;
+    let len = cpu.load(&"./src/test/testcase/beq".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -422,7 +422,7 @@ pub fn test_bne() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/bne") / 4;
+    let len = cpu.load(&"./src/test/testcase/bne".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -443,7 +443,7 @@ pub fn test_jal() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/jal") / 4;
+    let len = cpu.load(&"./src/test/testcase/jal".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -465,7 +465,7 @@ pub fn test_jalr() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/jalr") / 4;
+    let len = cpu.load(&"./src/test/testcase/jalr".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -487,7 +487,7 @@ pub fn test_blt() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/blt") / 4;
+    let len = cpu.load(&"./src/test/testcase/blt".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -508,7 +508,7 @@ pub fn test_bltu() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/bltu") / 4;
+    let len = cpu.load(&"./src/test/testcase/bltu".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -529,7 +529,7 @@ pub fn test_bge() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/bge") / 4;
+    let len = cpu.load(&"./src/test/testcase/bge".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -550,7 +550,7 @@ pub fn test_bgeu() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/bgeu") / 4;
+    let len = cpu.load(&"./src/test/testcase/bgeu".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -571,7 +571,7 @@ pub fn test_lsb() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/lsb") / 4;
+    let len = cpu.load(&"./src/test/testcase/lsb".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -594,7 +594,7 @@ pub fn test_lsh() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/lsh") / 4;
+    let len = cpu.load(&"./src/test/testcase/lsh".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
@@ -617,7 +617,7 @@ pub fn test_lsw() {
     use emulator::cpu::{ Cpu, Registers };
     let mut cpu = Cpu::new();
 
-    let len = cpu.load("./src/test/testcase/lsw") / 4;
+    let len = cpu.load(&"./src/test/testcase/lsw".to_string()) / 4;
 
     for _ in 0 .. len {
         cpu.fetch();
