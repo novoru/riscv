@@ -77,6 +77,12 @@ impl Cpu {
         len
     }
 
+    pub fn run(&mut self) {
+        self.fetch();
+        self.execute();
+        self.pc += 4;
+    }
+
     pub fn fetch(&mut self) {
         self.instruction = self.mmu.read64(self.pc);
     }
@@ -108,8 +114,13 @@ impl Cpu {
                                          ((self.instruction & 0x100000)    >>  9) |     // imm[11]
                                           (self.instruction  & 0xFF000)) as i32;        // imm[19:12]
                 offset = ((offset + (0b1000_0000_0000_0000)) & (0xFFFFF)) - 0b1000_0000_0000_0000;        // sign extention
-                self.register[rd] = self.pc as u64 + 4 as u64;
-                self.pc = (self.pc as i64 - 4 + offset as i64) as usize;
+                self.register[rd] = self.pc as u64 + 4;
+                self.pc = (self.pc as i64 + offset as i64) as usize;
+                if self.pc == 0 {
+                    std::process::exit(0);
+                }
+                self.fetch();
+                self.execute();
             },
             // B-type
             0b110_0011  => self.decode_btype(),
@@ -122,11 +133,19 @@ impl Cpu {
                 let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
 
                 self.register[rd] = ((self.pc as u64) + 4) & 0xFFFF_FFFF_FFFF_FFFE;
-                self.pc = (self.register[rs1] as i64 - 4 + imm as i64) as usize;
+                self.pc = (self.register[rs1] as i64  + imm as i64) as usize;
+                if self.pc == 0 {
+                    std::process::exit(0);
+                }
+                self.fetch();
+                self.execute();
             },
+            // FENCE
+            0b000_1111  => return,      // treat as nop
+            // SYSTEM (ECALL/EBREAK)
+            0b1110011 => return,        // treat as nop
             _           => unimplemented!(),
         }
-        self.pc += 4;
     }
 
     fn decode_rtype(&mut self) {
@@ -251,37 +270,67 @@ impl Cpu {
             // BEQ
             0b000   => {
                 if self.register[rs1] == self.register[rs2] {
-                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                    self.pc = (self.pc as i64 + imm as i64) as usize;
+                    if self.pc == 0 {
+                        std::process::exit(0);
+                    }
+                    self.fetch();
+                    self.execute();
                 }
             },
             // BNE
             0b001   => {
                 if self.register[rs1] != self.register[rs2] {
-                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                    self.pc = (self.pc as i64 + imm as i64) as usize;
+                    if self.pc == 0 {
+                        std::process::exit(0);
+                    }
+                    self.fetch();
+                    self.execute();
                 }
             },
             // BLT
             0b100   => {
                 if (self.register[rs1] as i64) < (self.register[rs2] as i64){
-                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                    self.pc = (self.pc as i64 + imm as i64) as usize;
+                    if self.pc == 0 {
+                        std::process::exit(0);
+                    }
+                    self.fetch();
+                    self.execute();
                 }
             },
             // BGE
             0b101   => {
                 if (self.register[rs1] as i64) >= (self.register[rs2] as i64){
-                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                    self.pc = (self.pc as i64 + imm as i64) as usize;
+                    if self.pc == 0 {
+                        std::process::exit(0);
+                    }
+                    self.fetch();
+                    self.execute();
                 }
             },
             // BLTU
             0b110   => {
                 if self.register[rs1] < self.register[rs2] {
-                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                    self.pc = (self.pc as i64 + imm as i64) as usize;
+                    if self.pc == 0 {
+                        std::process::exit(0);
+                    }
+                    self.fetch();
+                    self.execute();
                 }
             },
             // BGEU
             0b111   => {
                 if (self.register[rs1]) >= (self.register[rs2]){
-                    self.pc = (self.pc as i64 - 4 + imm as i64) as usize;
+                    self.pc = (self.pc as i64 + imm as i64) as usize;
+                    if self.pc == 0 {
+                        std::process::exit(0);
+                    }
+                    self.fetch();
+                    self.execute();
                 }
             },
             _       => unimplemented!(),

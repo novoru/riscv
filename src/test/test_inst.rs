@@ -9,6 +9,7 @@ pub fn test_addi() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
 
     assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_FFFF_FFFF_FFFF);
@@ -25,6 +26,7 @@ pub fn test_add() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
 
     assert_eq!(cpu.register[Registers::T2 as usize], 3);
@@ -42,6 +44,7 @@ pub fn test_slti() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 1);
@@ -59,6 +62,7 @@ pub fn test_sltiu() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0);
@@ -76,6 +80,7 @@ pub fn test_andi() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0b100_0100_0100);
@@ -93,6 +98,7 @@ pub fn test_ori() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0b111_0100_0111);
@@ -110,6 +116,7 @@ pub fn test_xori() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0b111_0000_0011);
@@ -127,6 +134,7 @@ pub fn test_slli() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0b101_1100);
@@ -144,6 +152,7 @@ pub fn test_srli() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0x3FFF_FFFF_FFFF_FFFF);
@@ -161,6 +170,7 @@ pub fn test_srai() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFFF);
@@ -178,6 +188,7 @@ pub fn test_lui() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_F000);
@@ -195,6 +206,7 @@ pub fn test_auipc() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_F000);
@@ -212,6 +224,7 @@ pub fn test_slt() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 1);
@@ -229,6 +242,7 @@ pub fn test_sltu() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0);
@@ -246,6 +260,7 @@ pub fn test_and() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0b100_0100_0100);
@@ -263,6 +278,7 @@ pub fn test_or() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0b111_0100_0111);
@@ -280,6 +296,7 @@ pub fn test_xor() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0b111_0000_0011);
@@ -297,6 +314,7 @@ pub fn test_sll() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0b101_1100);
@@ -314,6 +332,7 @@ pub fn test_srl() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0x3FFF_FFFF_FFFF_FFFF);
@@ -331,6 +350,7 @@ pub fn test_sub() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
 
     assert_eq!(cpu.register[Registers::T2 as usize], 3);
@@ -348,6 +368,7 @@ pub fn test_sra() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::T2 as usize], 0xFFFF_FFFF_FFFF_FFFF);
@@ -367,6 +388,7 @@ pub fn test_nop() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
     }
     
     assert_eq!(cpu.register[Registers::ZERO as usize], 0);
@@ -384,6 +406,7 @@ pub fn test_beq() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -404,6 +427,7 @@ pub fn test_bne() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -424,6 +448,7 @@ pub fn test_jal() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -445,6 +470,7 @@ pub fn test_jalr() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -466,6 +492,7 @@ pub fn test_blt() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -486,6 +513,7 @@ pub fn test_bltu() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -506,6 +534,7 @@ pub fn test_bge() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -526,6 +555,7 @@ pub fn test_bgeu() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -546,6 +576,7 @@ pub fn test_lsb() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -568,6 +599,7 @@ pub fn test_lsh() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
@@ -590,6 +622,7 @@ pub fn test_lsw() {
     for _ in 0 .. len {
         cpu.fetch();
         cpu.execute();
+		cpu.pc += 4;
         if cpu.pc >= (len * 4) {
             break;
         }
