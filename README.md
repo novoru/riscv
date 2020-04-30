@@ -3,7 +3,7 @@ This is an experimental RISC-V emulator written in Rust.
 
 ## 💻 Useage
 ```
-riscv [filename]
+cargo run -- [filename]
 ```
 ## 🧪 Test
 ```

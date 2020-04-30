@@ -1,11 +1,12 @@
 use crate::emulator::mmu::Mmu;
 use crate::emulator::memory::MEMORY_SIZE;
+use crate::emulator::csr::Csr;
 use std::fs::read;
 
 type Instruction    = u64;
 
-const NREGISTERS: usize = 32;
-const INIT_PC: usize = 0;
+const NREGISTERS:   usize = 32;
+const INIT_PC:      usize = 0;
 
 // General Registers (standardized names as part of the RISC-V application binary interface (ABI))
 pub enum Registers {
@@ -48,6 +49,7 @@ pub struct Cpu {
     pub instruction: Instruction,           // Current instruction
     pub pc: usize,                          // Program counter
     pub mmu: Mmu,                           // MMU (Memory Management Unit)
+    csr: Csr, 
 }
 
 impl Cpu {
@@ -56,7 +58,8 @@ impl Cpu {
             register: [0; NREGISTERS],
             instruction: 0,
             pc: INIT_PC,
-            mmu: Mmu::new()
+            mmu: Mmu::new(),
+            csr: Csr::new(),
         }
     }
 
@@ -144,8 +147,8 @@ impl Cpu {
             },
             // FENCE
             0b000_1111  => return,      // treat as nop
-            // SYSTEM (ECALL/EBREAK)
-            0b1110011   => return,        // treat as nop
+            // SYSTEM
+            0b1110011   => self.decode_system(),
             _           => unimplemented!(),
         }
     }
@@ -405,6 +408,64 @@ impl Cpu {
             },
             _       => unimplemented!(),
         }
+    }
+
+    fn decode_system(&mut self) {
+        // Decode instruction
+        let csr:    u16     = ((self.instruction >> 20) & 0xFFF) as u16;
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let uimm:   u8      = ((self.instruction >> 15) & 0x1F) as u8;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+
+        match funct3 {
+            // ECALL/EBREAK
+            0b000   => return,      // treat as nop
+            // CSRRW
+            0b001   => {
+                if rd != 0 {
+                    let data: u64 = self.csr.read(csr) as u64;
+                    self.register[rd] = data;
+                }
+                self.csr.write(csr, self.register[rs1]);
+            },
+            // CSRRS
+            0b010   => {
+                let data: u64 = self.csr.read(csr) as u64;
+                self.register[rd] = data;
+                self.csr.write(csr, data | self.register[rs1]);
+            },
+            // CSRRC
+            0b011   => {
+                let mut data: u64 = self.csr.read(csr);
+                self.register[rd] = data as u64;
+                data &= !(self.register[rs1]);
+                self.csr.write(csr, data);
+            },
+            // CSRRWI
+            0b101   => {
+                if rd != 0 {
+                    let data: u64 = self.csr.read(csr) as u64;
+                    self.register[rd] = data;
+                }
+                self.csr.write(csr, uimm as u64);
+            },
+            // CSRRSI
+            0b110   => {
+                let data: u64 = self.csr.read(csr) as u64;
+                self.register[rd] = data;
+                self.csr.write(csr, data | (uimm as u64));
+            },
+            // CSRRCI
+            0b111   => {
+                let mut data: u64 = self.csr.read(csr);
+                self.register[rd] = data as u64;
+                data &= !(uimm) as u64;
+                self.csr.write(csr, data);
+            },
+            _       => unimplemented!(),
+        }
+
     }
 
 }
