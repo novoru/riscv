@@ -71,10 +71,8 @@ impl Cpu {
             panic!("[ERROR] too large binary({}): {} Byte", filename, len);
         }
         
-        let mut i = 0;
-        for byte in binary {
-            self.mmu.write8(i, byte);
-            i += 1;
+        for (i, byte) in binary.iter().enumerate() {
+            self.mmu.write8(i, *byte);
         }
 
         len
