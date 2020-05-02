@@ -289,13 +289,27 @@ pub const DPC: u16              = 0x7B1;    // Debug PC.
 pub const DSCRATCH0: u16        = 0x7B2;    // Debug scratch register 0.
 pub const DSCRATCH1: u16        = 0x7B3;    // Debug scratch register 1.
 
+// Privilege levels
+#[derive(Copy, Clone, PartialEq)]
+pub enum PrivLevel {
+    USER        = 0b00,     // User/Application
+    SUPERVISOR  = 0b01,     // Supervisor
+    RESERVED    = 0b10,     // Reserved
+    MACHINE     = 0b11,     // Machine
+}
+
+#[derive(Copy, Clone)]
 pub struct Csr {
     csr: [u64; CSR_SIZE],
+    pub priv_level: PrivLevel,
 }
 
 impl Csr {
     pub fn new() -> Self {
-        Csr { csr: [0; CSR_SIZE] }
+        Csr {
+            csr: [0; CSR_SIZE],   
+            priv_level: PrivLevel::MACHINE
+        }
     }
     
     pub fn write(&mut self, csr: u16, data: u64) {

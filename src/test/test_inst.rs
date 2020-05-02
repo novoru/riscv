@@ -583,7 +583,7 @@ pub fn test_lsb() {
     }
 
     let addr = cpu.register[Registers::A0 as usize] as usize;
-    assert_eq!(cpu.mmu.read64(addr), 0x0000_0000_0000_00DD);
+    assert_eq!(cpu.mmu.read64(cpu.csr, addr), 0x0000_0000_0000_00DD);
     assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFDD);
 
 }
@@ -606,7 +606,7 @@ pub fn test_lsh() {
     }
 
     let addr = cpu.register[Registers::A0 as usize] as usize;
-    assert_eq!(cpu.mmu.read64(addr), 0x0000_0000_0000_FFFF);
+    assert_eq!(cpu.mmu.read64(cpu.csr, addr), 0x0000_0000_0000_FFFF);
     assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFFF);
 
 }
@@ -629,7 +629,7 @@ pub fn test_lsw() {
     }
 
     let addr = cpu.register[Registers::A0 as usize] as usize;
-    assert_eq!(cpu.mmu.read64(addr), 0x0000_0000_FFFF_F000);
+    assert_eq!(cpu.mmu.read64(cpu.csr, addr), 0x0000_0000_FFFF_F000);
     assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_F000);
 
 }

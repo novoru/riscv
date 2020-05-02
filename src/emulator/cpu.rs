@@ -1,6 +1,6 @@
 use crate::emulator::mmu::Mmu;
 use crate::emulator::memory::MEMORY_SIZE;
-use crate::emulator::csr::Csr;
+use crate::emulator::csr::{ Csr, PrivLevel};
 use std::fs::read;
 
 type Instruction    = u64;
@@ -49,7 +49,7 @@ pub struct Cpu {
     pub instruction: Instruction,           // Current instruction
     pub pc: usize,                          // Program counter
     pub mmu: Mmu,                           // MMU (Memory Management Unit)
-    csr: Csr, 
+    pub csr: Csr, 
 }
 
 impl Cpu {
@@ -87,7 +87,7 @@ impl Cpu {
     }
 
     pub fn fetch(&mut self) {
-        self.instruction = self.mmu.read64(self.pc);
+        self.instruction = self.mmu.read64(self.csr, self.pc);
     }
 
     pub fn execute(&mut self) {
@@ -352,21 +352,21 @@ impl Cpu {
             // LB
             0b000   => {
                 let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
-                let byte: u8        = self.mmu.read8(addr);
+                let byte: u8        = self.mmu.read8(self.csr, addr);
                 let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extention
                 self.register[rd]   = data as u64;
             },
             // LH
             0b001   => {
                 let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
-                let hword: u16      = self.mmu.read16(addr);
+                let hword: u16      = self.mmu.read16(self.csr, addr);
                 let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extention
                 self.register[rd]   = data as u64;
             },
             // LW
             0b010   => {
                 let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
-                let word: u32       = self.mmu.read32(addr);
+                let word: u32       = self.mmu.read32(self.csr, addr);
                 let data: i64       = ((word as i64 + 0b1000_0000_0000_0000_0000_0000_0000_0000) & 0xFFFF_FFFF)
                                       - 0b1000_0000_0000_0000_0000_0000_0000_0000;   // sign extention
                 self.register[rd]   = data as u64;
@@ -410,6 +410,41 @@ impl Cpu {
 
     fn decode_system(&mut self) {
         // Decode instruction
+        let funct12:    u16 = ((self.instruction >> 20) & 0xFFF) as u16;
+        let funct3:     u8  = ((self.instruction >> 12) & 0x7) as u8;
+
+        match funct3 {
+            // Trap-Return Instruction
+            0b000   => {
+                match funct12 {
+                    // ECALL
+                    0b0000_0000_0000    => {
+                        match self.csr.priv_level {
+                            PrivLevel::USER         => trap_user_ecall(),
+                            PrivLevel::SUPERVISOR   => trap_supervisor_ecall(),
+                            PrivLevel::MACHINE      => trap_machine_ecall(),
+                            _                       => unimplemented!(),
+                        }
+                    },
+                    // EBREAK
+                    0b0000_0000_0001    => unimplemented!(),
+                    // MRET
+                    0b0000_0000_0010    => unimplemented!(),
+                    // SRET
+                    0b0001_0000_0010    => unimplemented!(),
+                    // MRET
+                    0b0011_0000_0010    => unimplemented!(),
+                    _                   => unimplemented!(),
+                }
+            },
+            // Zicsr
+            _       => self.decode_zicsr(),
+        }
+
+    }
+
+    fn decode_zicsr(&mut self) {
+        // Decode instruction
         let csr:    u16     = ((self.instruction >> 20) & 0xFFF) as u16;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let uimm:   u8      = ((self.instruction >> 15) & 0x1F) as u8;
@@ -417,8 +452,6 @@ impl Cpu {
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
 
         match funct3 {
-            // ECALL/EBREAK
-            0b000   => return,      // treat as nop
             // CSRRW
             0b001   => {
                 if rd != 0 {
@@ -463,7 +496,21 @@ impl Cpu {
             },
             _       => unimplemented!(),
         }
-
     }
 
+}
+
+// ToDo: Stub code
+fn trap_user_ecall() {
+    unimplemented!();
+}
+
+// ToDo: Stub code
+fn trap_supervisor_ecall() {
+    unimplemented!();
+}
+
+// ToDo: Stub code
+fn trap_machine_ecall() {
+    unimplemented!();
 }

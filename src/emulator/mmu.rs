@@ -1,5 +1,5 @@
 use crate::emulator::memory::Memory;
-use crate::emulator::csr::*;
+use crate::emulator::csr::{ Csr, SATP, PrivLevel };
 
 pub const PAGE_SIZE: usize  = 1024 * 4;     // Page size: 4KiB (2**12)
 pub const LEVELS: i8        = 3;            // Paging levels (Sv39)
@@ -15,7 +15,7 @@ enum ACCESS {
 
 // Memory Management Unit
 pub struct Mmu {
-    pub memory: Memory,
+    memory: Memory,
     access: ACCESS,
 }
 
@@ -27,21 +27,22 @@ impl Mmu {
         }
     }
 
-    pub fn read8(&mut self, vaddr: usize) -> u8 {
+    pub fn read8(&mut self, csr: Csr, vaddr: usize) -> u8 {
         self.access = ACCESS::READ;
-        self.memory.rom[vaddr]
+        let paddr = self.translate_addr(csr, vaddr);
+        self.memory.read8(paddr)
     }
     
-    pub fn read16(&mut self, vaddr: usize) -> u16 {
-        self.read8(vaddr) as u16 | (self.read8(vaddr + 1)  as u16) << 8
+    pub fn read16(&mut self, csr: Csr, vaddr: usize) -> u16 {
+        self.read8(csr, vaddr) as u16 | (self.read8(csr, vaddr + 1)  as u16) << 8
     }
 
-    pub fn read32(&mut self, vaddr: usize) -> u32 {
-        self.read16(vaddr) as u32 | (self.read16(vaddr + 2)  as u32) << 16
+    pub fn read32(&mut self, csr: Csr, vaddr: usize) -> u32 {
+        self.read16(csr, vaddr) as u32 | (self.read16(csr, vaddr + 2)  as u32) << 16
     }
     
-    pub fn read64(&mut self, vaddr: usize) -> u64 {
-        self.read32(vaddr) as u64 | (self.read32(vaddr + 4) as u64) << 32
+    pub fn read64(&mut self, csr: Csr, vaddr: usize) -> u64 {
+        self.read32(csr, vaddr) as u64 | (self.read32(csr, vaddr + 4) as u64) << 32
     }
 
     pub fn write8(&mut self, vaddr: usize, data: u8) {
@@ -67,7 +68,7 @@ impl Mmu {
     // Translate virtual address to physical address (Sv39)
     // Reference:   RISC-V Privileged ISA Specification p.71~
     //              https://riscv.org/specifications/privileged-isa/
-    fn _translate_addr(&mut self, csr: &mut Csr, vaddr: usize) -> usize {
+    fn translate_addr(&mut self, csr: Csr, vaddr: usize) -> usize {
 
         /*
          *  Sv39 virtual address
@@ -95,13 +96,17 @@ impl Mmu {
          * 
          */
 
+        if csr.priv_level == PrivLevel::MACHINE {
+            return vaddr;
+        }
+
         let vpn         = |i| ((vaddr >> (12+9*i)) & 0x1FF);
         let pte_ppn     = |pte, i| ((pte >> (10+9*i)) & 0x1FF);
         let pte_v       = |pte: u64| (pte & 1u64);
         let pte_r       = |pte: u64| ((pte >> 1) & 1u64);
         let pte_w       = |pte: u64| ((pte >> 2) & 1u64);
         let pte_x       = |pte: u64| ((pte >> 3) & 1u64);
-        let _pte_u      = |pte: u64| ((pte >> 4) & 1u64);
+        let pte_u       = |pte: u64| ((pte >> 4) & 1u64);
         let _pte_g      = |pte: u64| ((pte >> 5) & 1u64);
         let pte_a       = |pte: u64| ((pte >> 6) & 1u64);
         let pte_d       = |pte: u64| ((pte >> 7) & 1u64);
@@ -125,7 +130,7 @@ impl Mmu {
             }
             */
 
-            pte = self.read64(addr);
+            pte = self.memory.read64(addr);
 
             // Step 3
             if pte_v(pte) == 0u64 || pte_w(pte) == 1u64 {
@@ -147,11 +152,9 @@ impl Mmu {
         }
 
         // Step 5
-        /* ToDo
-        if privilege_mode == USER && pte_u(pte) == 0 {
+        if csr.priv_level == PrivLevel::USER && pte_u(pte) == 0 {
             page_fault_exception();
         }
-        */
 
         if self.access == ACCESS::READ && pte_r(pte) == 0u64 {
             page_fault_exception();
