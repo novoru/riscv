@@ -1,14 +1,14 @@
-pub const MEMORY_SIZE: usize = 1024 * 4;     // 4KiB
+pub const MEMORY_SIZE: usize = 1024 * 1024 * 4;     // 4MiB
 
 // Physical Memory
 pub struct Memory {
-    pub rom: [u8; MEMORY_SIZE],
+    pub rom: Vec<u8>,
 }
 
 impl Memory {
     pub fn new() -> Self {
         Memory {
-            rom: [0; MEMORY_SIZE],
+            rom: vec![0; MEMORY_SIZE],
         }
     }
 }

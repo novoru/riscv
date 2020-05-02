@@ -1,23 +1,32 @@
-pub const CSR_SIZE: usize       = 4096;     // Maximum number of Control and Status registers
+// Maximum number of Control and Status registers
+pub const CSR_SIZE: usize       = 4096;
 
-// User Trap Setup
+/* 
+ * User Trap Setup
+ */
 pub const USTATUS: u16          = 0x000;    // User status register.
 pub const UIE: u16              = 0x004;    // User interrupt-enable register.
 pub const UTVEC: u16            = 0x005;    // User trap handler base address.
 
-// User Trap Handling
+/* 
+ * User Trap Handling
+ */
 pub const USCRATCH: u16         = 0x040;    // Scratch register for user trap handlers.
 pub const UEPC: u16             = 0x041;    // User exception program counter.
 pub const UCAUSE: u16           = 0x042;    // User trap cause.
 pub const UTVAL: u16            = 0x043;    // User bad address or instruction.
 pub const UIP: u16              = 0x044;    // User interrupt pending.
 
-// User Floating-Point CSRs
+/* 
+ * User Floating-Point CSRs 
+ */
 pub const FFLAGS: u16           = 0x001;    // Floating-Point Accrued Exceptions.
 pub const FRM: u16              = 0x002;    // Floating-Point Dynamic Rounding Mode.
 pub const FCSR: u16             = 0x003;    // Floating-Point Control and Status Register (frm + fflags).
 
-// User Counter/Timers
+/*
+ * User Counter/Timers
+ */
 pub const CYCLE: u16            = 0xC00;    // Cycle counter for RDCYCLE instruction.
 pub const TIME: u16             = 0xC01;    // Timer for RDTIME instruction.
 pub const INSTRET: u16          = 0xC02;    // Instructions-retired counter for RDINSTRET instruction.
@@ -51,7 +60,9 @@ pub const HPMCOUNTER29: u16     = 0xC1D;
 pub const HPMCOUNTER30: u16     = 0xC1E;
 pub const HPMCOUNTER31: u16     = 0xC1F;
 
-// Upper 32 bites of User Counter/Timers (RV32I only)
+/* 
+ * Upper 32 bites of User Counter/Timers (RV32I only) 
+ */
 pub const CYCLEH: u16           = 0xC80;   // Upper 32 bits of cycle, RV32I only.
 pub const TIMEH: u16            = 0xC81;   // Upper 32 bits of time, RV32I only.
 pub const INSTRETH: u16         = 0xC82;   // Upper 32 bits of instret, RV32I only.
@@ -85,7 +96,9 @@ pub const HPMCOUNTER29H: u16    = 0xC9D;
 pub const HPMCOUNTER30H: u16    = 0xC9E;
 pub const HPMCOUNTER31H: u16    = 0xC9F;
 
-// Supervisor Trap Setup
+/*
+ * Supervisor Trap Setup
+ */
 pub const SSTATUS: u16          = 0x100;    // Supervisor status register.
 pub const SEFELEG: u16          = 0x102;    // Supervisor exception delegation register.
 pub const SIDELEG: u16          = 0x103;    // Supervisor interrupt delegation register.
@@ -93,23 +106,31 @@ pub const SIE: u16              = 0x104;    // Supervisor interrupt-enable regis
 pub const STVEC: u16            = 0x105;    // Supervisor trap handler base address.
 pub const SCOUNTEREN: u16       = 0x106;    // Supervisor counter enable.
 
-// Supervisor Trap Handling
+/*
+ * Supervisor Trap Handling
+ */
 pub const SSCRATCH: u16         = 0x140;    // Scratch register for supervisor trap handlers.
 pub const SEPC: u16             = 0x141;    // Supervisor exception program counter.
 pub const SCAUSE: u16           = 0x142;    // Supervisor trap cause.
 pub const STVAL: u16            = 0x143;    // Supervisor bad address or instruction.
 pub const SIP: u16              = 0x144;    // Supervisor interrupt pending.
 
-// Supervisor Protection and Translation
+/*
+ * Supervisor Protection and Translation
+ */
 pub const SATP: u16             = 0x180;    // Supervisor address translation and protection.
 
-// Machine Information Registers
+/*
+ * Machine Information Registers
+ */
 pub const MVENDORID: u16        = 0xF11;    // Vendor ID.
 pub const MARCHID: u16          = 0xF12;    // Architecture ID.
 pub const MIMPID: u16           = 0xF13;    // Implementation ID.
 pub const MHARTID: u16          = 0xF14;    // Hardware thread ID.
 
-// Machine Trap Setup
+/*
+ * Machine Trap Setup
+ */
 pub const MSTATUS: u16          = 0x300;    // Machine status register.
 pub const MISA: u16             = 0x301;    // ISA and extensions
 pub const MEDELEG: u16          = 0x302;    // Machine exception delegation register.
@@ -118,14 +139,18 @@ pub const MIE: u16              = 0x304;    // Machine interrupt-enable register
 pub const MTVEC: u16            = 0x305;    // Machine trap-handler base address.
 pub const MCOUNTEREN: u16       = 0x306;    // Machine counter enable.
 
-// Machine Trap Handling
+/*
+ * Machine Trap Handling
+ */
 pub const MSCRATCH: u16         = 0x340;    // Scratch register for machine trap handlers.
 pub const MEPC: u16             = 0x341;    // Machine exception program counter.
 pub const MCAUSE: u16           = 0x342;    // Machine trap cause.
 pub const MTVAL: u16            = 0x343;    // Machine bad address or instruction.
 pub const MIP: u16              = 0x344;    // Machine interrupt pending.
 
-// Machine Memory Protection
+/*
+ * Machine Memory Protection
+ */
 pub const PMPCFG0: u16          = 0x3A0;    // Physical memory protection configuration.
 pub const PMPCFG1: u16          = 0x3A1;    // Physical memory protection configuration, RV32 only.
 pub const PMPCFG2: u16          = 0x3A2;    // Physical memory protection configuration.
@@ -147,7 +172,9 @@ pub const PMPADDR13: u16        = 0x3BD;
 pub const PMPADDR14: u16        = 0x3BE;
 pub const PMPADDR15: u16        = 0x3BF;
 
-// Machine Counter/Timers
+/*
+ * Machine Counter/Timers
+ */
 pub const MCYCLE: u16           = 0xB00;    // Machine cycle counter.
 pub const MINSTRET: u16         = 0xB02;    // Machine instructions-retired counter.
 pub const MHPMCOUNTER3: u16     = 0xB03;    // Machine performance-monitoring counter.
@@ -212,7 +239,9 @@ pub const MHPMCOUNTER29H: u16   = 0xB9D;
 pub const MHPMCOUNTER30H: u16   = 0xB9E;
 pub const MHPMCOUNTER31H: u16   = 0xB9F;
 
-// Machine Counter Setup
+/*
+ * Machine Counter Setup
+ */
 pub const MCOUNTINHIBIT: u16    = 0x320;    // Machine counter-inhibit register.
 pub const MHPMEVENT3: u16       = 0x323;    // Machine performance-monitoring event selector.
 pub const MHPMEVENT4: u16       = 0x324;
@@ -244,13 +273,17 @@ pub const MHPMEVENT29: u16      = 0x33D;
 pub const MHPMEVENT30: u16      = 0x33E;
 pub const MHPMEVENT31: u16      = 0x33F;
 
-// Debug/Trace Registers (shared with Debug Mode)
+/*
+ * Debug/Trace Registers (shared with Debug Mode)
+ */
 pub const TSELECT: u16          = 0x7A0;    // Debug/Trace trigger register select.
 pub const TDATA1: u16           = 0x7A1;    // First Debug/Trace trigger data register.
 pub const TDATA2: u16           = 0x7A2;    // Second Debug/Trace trigger data register.
 pub const TDATA3: u16           = 0x7A3;    // Third Debug/Trace trigger data register.
 
-// Debug Mode Registers
+/*
+ * Debug Mode Registers
+ */
 pub const DCSR: u16             = 0x7B0;    // Debug control and status register.
 pub const DPC: u16              = 0x7B1;    // Debug PC.
 pub const DSCRATCH0: u16        = 0x7B2;    // Debug scratch register 0.
