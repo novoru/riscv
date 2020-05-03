@@ -1,28 +1,123 @@
 use crate::emulator::cpu::Cpu;
+use crate::emulator::csr::*;
 
 #[derive(Debug)]
 pub enum Exception {
-    InstAddrMisalign    = 0,
-    InstAccessFault     = 1,
-    IllegalInst         = 2,
-    Breakpoint          = 3,
-    LoadAddrMislign     = 4,
-    LoadAccessFault     = 5,
-    StoreAddrMisalign   = 6,
-    StoreAccessFault    = 7,
-    EnvCallUmode        = 8,
-    EnvCallSmode        = 9,
+    InstAddrMisalign,
+    InstAccessFault,
+    IllegalInst,
+    Breakpoint,
+    LoadAddrMislign,
+    LoadAccessFault,
+    StoreAddrMisalign,
+    StoreAccessFault,
+    EnvCallUmode,
+    EnvCallSmode,
     // 10: Reserved
-    EnvCallMmode        = 11,
-    InstPageFault       = 12,
-    LoadPageFault       = 13,
+    EnvCallMmode,
+    InstPageFault,
+    LoadPageFault,
     // 14: Reserved for future standard use
-    StorePageFault      = 15,
-    // 15~: Reserved
+    StorePageFault,
+    // 16~: Reserved
 }
 
 impl Exception {
-    pub fn take_trap(&self, _cpu: &mut Cpu) {
-        unimplemented!();
+    fn exc_code(&self) -> u8 {
+        match self {
+            Exception::InstAddrMisalign     =>  1,
+            Exception::InstAccessFault      =>  2,
+            Exception::IllegalInst          =>  3,
+            Exception::Breakpoint	        =>  4,
+            Exception::LoadAddrMislign      =>  5,
+            Exception::LoadAccessFault	    =>  6,
+            Exception::StoreAddrMisalign    =>  7,
+            Exception::StoreAccessFault     =>  8,
+            Exception::EnvCallUmode         =>  9,
+            Exception::EnvCallSmode         =>  11,
+            Exception::EnvCallMmode         =>  12,
+            Exception::InstPageFault	    =>  13,
+            Exception::LoadPageFault	    =>  14,
+            Exception::StorePageFault	    =>  15,
+        }
+    }
+
+    pub fn take_trap(&self, cpu: &mut Cpu) {
+        let cur_pc = cpu.pc as u64;
+        let prev_level  = cpu.csr.priv_level;
+
+        let medeleg = cpu.csr.read(MEDELEG);
+        let sedeleg = cpu.csr.read(SEDELEG);
+
+        let pos = self.exc_code() & 0xFF;
+
+        if ((medeleg >> pos) & 1) == 0 {
+            cpu.csr.priv_level = PrivLevel::MACHINE;
+        }
+        else {
+            if (sedeleg >> pos & 0b1) == 0 {
+                cpu.csr.priv_level = PrivLevel::SUPERVISOR;
+            }
+            else {
+                cpu.csr.priv_level = PrivLevel::USER;
+            }
+        }
+
+        match cpu.csr.priv_level {
+            PrivLevel::MACHINE      => {
+                cpu.csr.write(MEPC, cur_pc);
+                cpu.pc = cpu.csr.read(MTVEC) as usize;
+                cpu.csr.write(MCAUSE, self.exc_code() as u64);
+                match self {
+                    Exception::InstAddrMisalign     |
+                    Exception::LoadAddrMislign      |
+                    Exception::StoreAddrMisalign    |
+                    Exception::InstPageFault        |
+                    Exception::LoadPageFault        |
+                    Exception::StorePageFault       => cpu.csr.write(MTVAL, cur_pc),
+                    _                               => cpu.csr.write(MTVAL, 0),
+                }
+                let mstatus = cpu.csr.read_bit(MSTATUS, 3);
+                cpu.csr.write_bit(MSTATUS, 7, mstatus);
+                cpu.csr.write_bit(MSTATUS, 3, false);
+                cpu.csr.write_bits(MSTATUS, 11..13, 0b00);
+            },
+            PrivLevel::SUPERVISOR   => {
+                cpu.csr.write(MEPC, cur_pc);
+                cpu.pc = cpu.csr.read(STVEC) as usize;
+                cpu.csr.write(SCAUSE, self.exc_code() as u64);
+                match self {
+                    Exception::InstAddrMisalign     |
+                    Exception::LoadAddrMislign      |
+                    Exception::StoreAddrMisalign    |
+                    Exception::InstPageFault        |
+                    Exception::LoadPageFault        |
+                    Exception::StorePageFault       => cpu.csr.write(STVAL, cur_pc),
+                    _                               => cpu.csr.write(STVAL, 0),
+                }
+                let sstatus = cpu.csr.read_bit(MSTATUS, 1);
+                cpu.csr.write_bit(MSTATUS, 5, sstatus);
+                cpu.csr.write_bit(MSTATUS, 1, false);
+                match prev_level {
+                    PrivLevel::USER => cpu.csr.write_bit(SSTATUS, 8, false),
+                    _               => cpu.csr.write_bit(SSTATUS, 8, true),
+                }
+            },
+            PrivLevel::USER         => {
+                cpu.csr.write(UEPC, cur_pc);
+                cpu.pc = cpu.csr.read(UTVEC) as usize;
+                cpu.csr.write(UCAUSE, self.exc_code() as u64);
+                match self {
+                    Exception::InstAddrMisalign     |
+                    Exception::LoadAddrMislign      |
+                    Exception::StoreAddrMisalign    |
+                    Exception::InstPageFault        |
+                    Exception::LoadPageFault        |
+                    Exception::StorePageFault       => cpu.csr.write(UTVAL, cur_pc),
+                    _                               => cpu.csr.write(UTVAL, 0),
+                }
+            },
+            _                       => unimplemented!(),
+        }
     }
 }

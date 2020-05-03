@@ -100,7 +100,7 @@ pub const HPMCOUNTER31H: u16    = 0xC9F;
  * Supervisor Trap Setup
  */
 pub const SSTATUS: u16          = 0x100;    // Supervisor status register.
-pub const SEFELEG: u16          = 0x102;    // Supervisor exception delegation register.
+pub const SEDELEG: u16          = 0x102;    // Supervisor exception delegation register.
 pub const SIDELEG: u16          = 0x103;    // Supervisor interrupt delegation register.
 pub const SIE: u16              = 0x104;    // Supervisor interrupt-enable register.
 pub const STVEC: u16            = 0x105;    // Supervisor trap handler base address.
@@ -312,6 +312,28 @@ impl Csr {
         }
     }
     
+    pub fn write_bit(&mut self, csr: u16, digit: u8, bit: bool) {
+        if bit {
+            self.csr[csr as usize] |= 1 << digit;
+        }
+        else {
+            self.csr[csr as usize] &= !(1 << digit);
+        }
+    }
+
+    pub fn read_bit(&mut self, csr: u16, digit: u8) -> bool {
+        (self.read(csr) & (1 << digit) & 0b1) == 1
+    }
+
+
+    pub fn write_bits(&mut self, csr: u16, digits: std::ops::Range<u8>, bits: u64) {
+        for (i, digit) in digits.enumerate() {
+            eprintln!("digit: {}", digit);
+            eprintln!("bit: {}", ((bits >> i) & 0b1));
+            self.write_bit(csr, digit as u8, ((bits >> i) & 0b1) == 1);
+        }
+    }
+
     pub fn write(&mut self, csr: u16, data: u64) {
         match (csr & 0xC00) >> 10 {     // CSR Address [11:10]
             0b11    => {},              // Read only

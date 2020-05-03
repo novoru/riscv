@@ -9,8 +9,8 @@ pub const PTE_SIZE: u8      = 8;            // Page teble entry size (Sv39)
 #[derive(PartialEq)]
 enum ACCESS {
     NONE,
-    READ,
-    WRITE,
+    LOAD,
+    STORE,
     EXEC,
 }
 
@@ -29,7 +29,7 @@ impl Mmu {
     }
 
     pub fn read8(&mut self, csr: Csr, vaddr: usize) -> Result<u8, Exception> {
-        self.access = ACCESS::READ;
+        self.access = ACCESS::LOAD;
         let paddr = self.translate_addr(csr, vaddr)?;
         Ok(self.memory.read8(paddr))
     }
@@ -53,7 +53,7 @@ impl Mmu {
     }
 
     pub fn write8(&mut self, vaddr: usize, data: u8) {
-        self.access = ACCESS::WRITE;
+        self.access = ACCESS::STORE;
         self.memory.rom[vaddr] = data;
     }
 
@@ -141,7 +141,7 @@ impl Mmu {
 
             // Step 3
             if pte_v(pte) == 0u64 || pte_w(pte) == 1u64 {
-                page_fault_exception();
+                self.page_fault_exception()?;
             }
 
             // Step 4
@@ -152,7 +152,7 @@ impl Mmu {
             i -= 1;
 
             if i < 0 {
-                page_fault_exception();
+                self.page_fault_exception()?;
             }
 
             a = (pte_ppn(pte, i) as usize) * PAGE_SIZE;
@@ -160,19 +160,19 @@ impl Mmu {
 
         // Step 5
         if csr.priv_level == PrivLevel::USER && pte_u(pte) == 0 {
-            page_fault_exception();
+            self.page_fault_exception()?;
         }
 
-        if self.access == ACCESS::READ && pte_r(pte) == 0u64 {
-            page_fault_exception();
+        if self.access == ACCESS::LOAD && pte_r(pte) == 0u64 {
+            self.page_fault_exception()?;
         }
 
-        if self.access == ACCESS::WRITE && pte_x(pte) == 0u64 {
-            page_fault_exception();
+        if self.access == ACCESS::STORE && pte_x(pte) == 0u64 {
+            self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::EXEC && pte_x(pte) == 0u64 {
-            page_fault_exception();
+            self.page_fault_exception()?;
         }
 
         // Step 6
@@ -183,8 +183,8 @@ impl Mmu {
         */
 
         // Step 7
-        if pte_a(pte) == 0u64 || (self.access == ACCESS::WRITE && pte_d(pte) == 0u64) {
-            page_fault_exception();
+        if pte_a(pte) == 0u64 || (self.access == ACCESS::STORE && pte_d(pte) == 0u64) {
+            self.page_fault_exception()?;
         }
 
         // Step 8
@@ -202,9 +202,12 @@ impl Mmu {
         Ok((pa_ppn << 22) + pa_pgoff)   // Physical address
     }
 
-}
+    fn page_fault_exception(&self) -> Result<(), Exception> {
+        match self.access {
+            ACCESS::LOAD    => return Err(Exception::LoadPageFault),
+            ACCESS::STORE   => return Err(Exception::StorePageFault),
+            _               => unimplemented!(),
+        }
+    }
 
-// ToDo: Stub code
-fn page_fault_exception() {
-    unimplemented!()
 }
