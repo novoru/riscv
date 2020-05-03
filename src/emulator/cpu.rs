@@ -1,6 +1,7 @@
 use crate::emulator::mmu::Mmu;
 use crate::emulator::memory::MEMORY_SIZE;
 use crate::emulator::csr::{ Csr, PrivLevel};
+use crate::emulator::exception::Exception;
 use std::fs::read;
 
 type Instruction    = u64;
@@ -80,17 +81,26 @@ impl Cpu {
 
     pub fn run(&mut self) {
         loop {
-            self.fetch();
-            self.execute();
+            match self.fetch() {
+                Ok(_)           => {},
+                Err(exception)  => exception.take_trap(self),
+            }
+            
+            match self.execute() {
+                Ok(_)           => {},
+                Err(exception)  => exception.take_trap(self),
+            }
+
             self.pc += 4;
         }
     }
 
-    pub fn fetch(&mut self) {
-        self.instruction = self.mmu.read64(self.csr, self.pc);
+    pub fn fetch(&mut self) -> Result<(), Exception> {
+        self.instruction = self.mmu.read64(self.csr, self.pc)?;
+        Ok(())
     }
 
-    pub fn execute(&mut self) {
+    pub fn execute(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let imm:    u32 = ((self.instruction >> 12) & 0xF_FFFF) as u32;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -98,13 +108,13 @@ impl Cpu {
         
         match opcode {
             // LOAD
-            0b000_0011  => self.decode_load(),
+            0b000_0011  => self.decode_load()?,
             // STORE
-            0b010_0011  => self.decode_store(),
+            0b010_0011  => self.decode_store()?,
             // R-type
-            0b011_0011  => self.decode_rtype(),
+            0b011_0011  => self.decode_rtype()?,
             // I-type
-            0b001_0011  => self.decode_itype(),
+            0b001_0011  => self.decode_itype()?,
             // LUI
             0b011_0111  => self.register[rd] = ((imm & 0xF_FFFF) << 12) as u64,
             // AUIPC
@@ -122,11 +132,11 @@ impl Cpu {
                 if self.pc == 0 {
                     std::process::exit(0);
                 }
-                self.fetch();
-                self.execute();
+                self.fetch()?;
+                self.execute()?;
             },
             // B-type
-            0b110_0011  => self.decode_btype(),
+            0b110_0011  => self.decode_btype()?,
             // JALR
             0b110_0111  => {
                 // Decode instruction
@@ -140,18 +150,20 @@ impl Cpu {
                 if self.pc == 0 {
                     std::process::exit(0);
                 }
-                self.fetch();
-                self.execute();
+                self.fetch()?;
+                self.execute()?;
             },
             // FENCE
-            0b000_1111  => return,      // treat as nop
+            0b000_1111  => unimplemented!(),      // treat as nop
             // SYSTEM
-            0b1110011   => self.decode_system(),
+            0b1110011   => self.decode_system()?,
             _           => unimplemented!(),
         }
+
+        Ok(())
     }
 
-    fn decode_rtype(&mut self) {
+    fn decode_rtype(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
@@ -206,9 +218,11 @@ impl Cpu {
             },
             _               => unimplemented!(),
         }
+
+        Ok(())
     }
 
-    fn decode_itype(&mut self) {
+    fn decode_itype(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
@@ -256,9 +270,11 @@ impl Cpu {
             0b111   => self.register[rd] = ((self.register[rs1] as i64) & (imm as i64)) as u64,
             _       => unimplemented!(),
         }
+
+        Ok(())
     }
 
-    fn decode_btype(&mut self) {
+    fn decode_btype(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm: i16    = (((self.instruction & 0x8000_0000_0000_0000) >> 18) |
                                ((self.instruction & 0x80) << 4) |
@@ -277,8 +293,8 @@ impl Cpu {
                     if self.pc == 0 {
                         std::process::exit(0);
                     }
-                    self.fetch();
-                    self.execute();
+                    self.fetch()?;
+                    self.execute()?;
                 }
             },
             // BNE
@@ -288,8 +304,8 @@ impl Cpu {
                     if self.pc == 0 {
                         std::process::exit(0);
                     }
-                    self.fetch();
-                    self.execute();
+                    self.fetch()?;
+                    self.execute()?;
                 }
             },
             // BLT
@@ -299,8 +315,8 @@ impl Cpu {
                     if self.pc == 0 {
                         std::process::exit(0);
                     }
-                    self.fetch();
-                    self.execute();
+                    self.fetch()?;
+                    self.execute()?;
                 }
             },
             // BGE
@@ -310,8 +326,8 @@ impl Cpu {
                     if self.pc == 0 {
                         std::process::exit(0);
                     }
-                    self.fetch();
-                    self.execute();
+                    self.fetch()?;
+                    self.execute()?;
                 }
             },
             // BLTU
@@ -321,8 +337,8 @@ impl Cpu {
                     if self.pc == 0 {
                         std::process::exit(0);
                     }
-                    self.fetch();
-                    self.execute();
+                    self.fetch()?;
+                    self.execute()?;
                 }
             },
             // BGEU
@@ -332,15 +348,17 @@ impl Cpu {
                     if self.pc == 0 {
                         std::process::exit(0);
                     }
-                    self.fetch();
-                    self.execute();
+                    self.fetch()?;
+                    self.execute()?;
                 }
             },
             _       => unimplemented!(),
         }
+
+        Ok(())
     }
 
-    fn decode_load(&mut  self) {
+    fn decode_load(&mut  self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & 0xFFF) - 0b1000_0000_0000;     // sign extention
@@ -352,21 +370,21 @@ impl Cpu {
             // LB
             0b000   => {
                 let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
-                let byte: u8        = self.mmu.read8(self.csr, addr);
+                let byte: u8        = self.mmu.read8(self.csr, addr)?;
                 let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extention
                 self.register[rd]   = data as u64;
             },
             // LH
             0b001   => {
                 let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
-                let hword: u16      = self.mmu.read16(self.csr, addr);
+                let hword: u16      = self.mmu.read16(self.csr, addr)?;
                 let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extention
                 self.register[rd]   = data as u64;
             },
             // LW
             0b010   => {
                 let addr: usize     = (self.register[rs1] as i64 + imm as i64) as usize;
-                let word: u32       = self.mmu.read32(self.csr, addr);
+                let word: u32       = self.mmu.read32(self.csr, addr)?;
                 let data: i64       = ((word as i64 + 0b1000_0000_0000_0000_0000_0000_0000_0000) & 0xFFFF_FFFF)
                                       - 0b1000_0000_0000_0000_0000_0000_0000_0000;   // sign extention
                 self.register[rd]   = data as u64;
@@ -374,9 +392,10 @@ impl Cpu {
             _       => unimplemented!(),
         }
 
+        Ok(())
     }
 
-    fn decode_store(&mut self) {
+    fn decode_store(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm: i16    = (((self.instruction & 0xFE00_0000_0000_0000) >> 20) |
                                ((self.instruction & 0xF80) >> 7)) as i16;
@@ -406,9 +425,11 @@ impl Cpu {
             },
             _       => unimplemented!(),
         }
+
+        Ok(())
     }
 
-    fn decode_system(&mut self) {
+    fn decode_system(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let funct12:    u16 = ((self.instruction >> 20) & 0xFFF) as u16;
         let funct3:     u8  = ((self.instruction >> 12) & 0x7) as u8;
@@ -420,9 +441,9 @@ impl Cpu {
                     // ECALL
                     0b0000_0000_0000    => {
                         match self.csr.priv_level {
-                            PrivLevel::USER         => trap_user_ecall(),
-                            PrivLevel::SUPERVISOR   => trap_supervisor_ecall(),
-                            PrivLevel::MACHINE      => trap_machine_ecall(),
+                            PrivLevel::USER         => return Err(Exception::EnvCallUmode),
+                            PrivLevel::SUPERVISOR   => return Err(Exception::EnvCallSmode),
+                            PrivLevel::MACHINE      => return Err(Exception::EnvCallMmode),
                             _                       => unimplemented!(),
                         }
                     },
@@ -438,12 +459,13 @@ impl Cpu {
                 }
             },
             // Zicsr
-            _       => self.decode_zicsr(),
+            _       => self.decode_zicsr()?,
         }
 
+        Ok(())
     }
 
-    fn decode_zicsr(&mut self) {
+    fn decode_zicsr(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let csr:    u16     = ((self.instruction >> 20) & 0xFFF) as u16;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
@@ -496,21 +518,7 @@ impl Cpu {
             },
             _       => unimplemented!(),
         }
+
+        Ok(())
     }
-
-}
-
-// ToDo: Stub code
-fn trap_user_ecall() {
-    unimplemented!();
-}
-
-// ToDo: Stub code
-fn trap_supervisor_ecall() {
-    unimplemented!();
-}
-
-// ToDo: Stub code
-fn trap_machine_ecall() {
-    unimplemented!();
 }

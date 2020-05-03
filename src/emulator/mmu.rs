@@ -1,5 +1,6 @@
 use crate::emulator::memory::Memory;
 use crate::emulator::csr::{ Csr, SATP, PrivLevel };
+use crate::emulator::exception::{ Exception };
 
 pub const PAGE_SIZE: usize  = 1024 * 4;     // Page size: 4KiB (2**12)
 pub const LEVELS: i8        = 3;            // Paging levels (Sv39)
@@ -27,22 +28,28 @@ impl Mmu {
         }
     }
 
-    pub fn read8(&mut self, csr: Csr, vaddr: usize) -> u8 {
+    pub fn read8(&mut self, csr: Csr, vaddr: usize) -> Result<u8, Exception> {
         self.access = ACCESS::READ;
-        let paddr = self.translate_addr(csr, vaddr);
-        self.memory.read8(paddr)
+        let paddr = self.translate_addr(csr, vaddr)?;
+        Ok(self.memory.read8(paddr))
     }
     
-    pub fn read16(&mut self, csr: Csr, vaddr: usize) -> u16 {
-        self.read8(csr, vaddr) as u16 | (self.read8(csr, vaddr + 1)  as u16) << 8
+    pub fn read16(&mut self, csr: Csr, vaddr: usize) -> Result<u16, Exception> {
+        let hi = self.read8(csr, vaddr)?;
+        let lo = self.read8(csr, vaddr + 1)?;
+        Ok(hi as u16 | (lo as u16) << 8)
     }
 
-    pub fn read32(&mut self, csr: Csr, vaddr: usize) -> u32 {
-        self.read16(csr, vaddr) as u32 | (self.read16(csr, vaddr + 2)  as u32) << 16
+    pub fn read32(&mut self, csr: Csr, vaddr: usize) -> Result<u32, Exception> {
+        let hi = self.read16(csr, vaddr)?;
+        let lo = self.read16(csr, vaddr + 2)?;
+        Ok(hi as u32 | (lo as u32) << 16)
     }
     
-    pub fn read64(&mut self, csr: Csr, vaddr: usize) -> u64 {
-        self.read32(csr, vaddr) as u64 | (self.read32(csr, vaddr + 4) as u64) << 32
+    pub fn read64(&mut self, csr: Csr, vaddr: usize) -> Result<u64, Exception> {
+        let hi = self.read32(csr, vaddr)?;
+        let lo = self.read32(csr, vaddr + 4)?;
+        Ok(hi as u64 | (lo as u64) << 32)
     }
 
     pub fn write8(&mut self, vaddr: usize, data: u8) {
@@ -68,7 +75,7 @@ impl Mmu {
     // Translate virtual address to physical address (Sv39)
     // Reference:   RISC-V Privileged ISA Specification p.71~
     //              https://riscv.org/specifications/privileged-isa/
-    fn translate_addr(&mut self, csr: Csr, vaddr: usize) -> usize {
+    fn translate_addr(&mut self, csr: Csr, vaddr: usize) -> Result<usize, Exception> {
 
         /*
          *  Sv39 virtual address
@@ -97,7 +104,7 @@ impl Mmu {
          */
 
         if csr.priv_level == PrivLevel::MACHINE {
-            return vaddr;
+            return Ok(vaddr);
         }
 
         let vpn         = |i| ((vaddr >> (12+9*i)) & 0x1FF);
@@ -192,7 +199,7 @@ impl Mmu {
 
         let pa_ppn: usize = pte_ppn(pte, i) as usize;
 
-        (pa_ppn << 22) + pa_pgoff   // Physical address
+        Ok((pa_ppn << 22) + pa_pgoff)   // Physical address
     }
 
 }
