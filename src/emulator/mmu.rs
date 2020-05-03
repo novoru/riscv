@@ -103,7 +103,7 @@ impl Mmu {
          * 
          */
 
-        if csr.priv_level == PrivLevel::MACHINE {
+        if csr.read_bits(SATP, 60..63+1) == 0 {
             return Ok(vaddr);
         }
 

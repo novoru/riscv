@@ -321,17 +321,25 @@ impl Csr {
         }
     }
 
-    pub fn read_bit(&mut self, csr: u16, digit: u8) -> bool {
-        (self.read(csr) & (1 << digit) & 0b1) == 1
+    pub fn read_bit(&self, csr: u16, digit: u8) -> bool {
+        ((self.read(csr) >> digit) & 0b1) == 1
     }
-
 
     pub fn write_bits(&mut self, csr: u16, digits: std::ops::Range<u8>, bits: u64) {
         for (i, digit) in digits.enumerate() {
-            eprintln!("digit: {}", digit);
-            eprintln!("bit: {}", ((bits >> i) & 0b1));
             self.write_bit(csr, digit as u8, ((bits >> i) & 0b1) == 1);
         }
+    }
+
+    pub fn read_bits(&self, csr: u16, digits: std::ops::Range<u8>) -> u64 {
+        let mut bits = 0;
+
+        for (i, digit) in digits.enumerate() {
+            let bit = self.read_bit(csr, digit);
+            bits |= (bit as u64) <<i;
+        }
+
+        bits
     }
 
     pub fn write(&mut self, csr: u16, data: u64) {
