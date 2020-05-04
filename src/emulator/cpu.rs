@@ -203,7 +203,7 @@ impl Cpu {
             // I-type
             0b001_0011  => self.decode_itype()?,
             // LUI
-            0b011_0111  => self.register.write(rd as usize, ((imm & 0xF_FFFF) << 12) as u64),
+            0b011_0111  => self.register.write(rd as usize, ((imm as i32 & 0xF_FFFF) << 12) as i64 as u64),
             // AUIPC
             0b001_0111  => {
                 self.register.write(rd as usize, (((imm as i64) << 12) + self.pc as i64) as u64);
@@ -269,7 +269,7 @@ impl Cpu {
             0b000_0000 => {    
                 match funct3 {
                     // ADD
-                    0b000   => self.register.write(rd as usize, self.register.read(rs1 as usize) + self.register.read(rs2 as usize)),
+                    0b000   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_add(self.register.read(rs2 as usize))),
                     // SLL
                     0b001   => self.register.write(rd as usize, self.register.read(rs1 as usize) << self.register.read(rs2 as usize)),
                     // SLT
@@ -634,7 +634,7 @@ impl Cpu {
 
         match funct3 {
             // ADDIW
-            0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64) + (imm as i64)) as u64),
+            0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_add(imm as i32)) as u64),
             _       => unimplemented!(),
         }
 

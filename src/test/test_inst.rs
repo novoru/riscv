@@ -14,7 +14,7 @@ pub fn test_addi() -> Result<(), Exception> {
 		cpu.pc += 4;
     }
 
-    assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_FFFF_FFFF_FFFF);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 0xFFFF_FFFF_FFFF_FFFF);
 	Ok(())
 }
 
@@ -32,7 +32,7 @@ pub fn test_add() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
 
-    assert_eq!(cpu.register[Registers::T2 as usize], 3);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 3);
 	Ok(())
 }
 
@@ -50,7 +50,7 @@ pub fn test_slti() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 1);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 1);
 	Ok(())
 }
 
@@ -68,7 +68,7 @@ pub fn test_sltiu() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0);
 	Ok(())
 }
 
@@ -86,7 +86,7 @@ pub fn test_andi() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0b100_0100_0100);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0b100_0100_0100);
 	Ok(())
 }
 
@@ -104,7 +104,7 @@ pub fn test_ori() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0b111_0100_0111);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0b111_0100_0111);
 	Ok(())
 }
 
@@ -122,7 +122,7 @@ pub fn test_xori() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0b111_0000_0011);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0b111_0000_0011);
 	Ok(())
 }
 
@@ -140,7 +140,7 @@ pub fn test_slli() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0b101_1100);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0b101_1100);
 	Ok(())
 }
 
@@ -158,7 +158,7 @@ pub fn test_srli() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0x3FFF_FFFF_FFFF_FFFF);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0x3FFF_FFFF_FFFF_FFFF);
 	Ok(())
 }
 
@@ -176,7 +176,7 @@ pub fn test_srai() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFFF);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0xFFFF_FFFF_FFFF_FFFF);
 	Ok(())
 }
 
@@ -194,7 +194,7 @@ pub fn test_lui() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_F000);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 0xFFFF_FFFF_FFFF_F000);
 	Ok(())
 }
 
@@ -212,7 +212,7 @@ pub fn test_auipc() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 0xFFFF_F000);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 0xFFFF_F000);
 	Ok(())
 }
 
@@ -230,7 +230,7 @@ pub fn test_slt() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 1);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 1);
 	Ok(())
 }
 
@@ -248,7 +248,7 @@ pub fn test_sltu() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0);
 	Ok(())
 }
 
@@ -266,7 +266,7 @@ pub fn test_and() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0b100_0100_0100);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0b100_0100_0100);
 	Ok(())
 }
 
@@ -284,7 +284,7 @@ pub fn test_or() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0b111_0100_0111);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0b111_0100_0111);
 	Ok(())
 }
 
@@ -302,7 +302,7 @@ pub fn test_xor() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0b111_0000_0011);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0b111_0000_0011);
 	Ok(())
 }
 
@@ -320,7 +320,7 @@ pub fn test_sll() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0b101_1100);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0b101_1100);
 	Ok(())
 }
 
@@ -338,7 +338,7 @@ pub fn test_srl() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0x3FFF_FFFF_FFFF_FFFF);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0x3FFF_FFFF_FFFF_FFFF);
 	Ok(())
 }
 
@@ -356,7 +356,7 @@ pub fn test_sub() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
 
-    assert_eq!(cpu.register[Registers::T2 as usize], 3);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 3);
 	Ok(())
 }
 
@@ -374,7 +374,7 @@ pub fn test_sra() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 0xFFFF_FFFF_FFFF_FFFF);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 0xFFFF_FFFF_FFFF_FFFF);
 	Ok(())
 }
 
@@ -386,7 +386,7 @@ pub fn test_nop() -> Result<(), Exception>  {
 
     let len = cpu.load(&"./src/test/testcase/nop".to_string()) / 4;
 
-    assert_eq!(cpu.register[Registers::ZERO as usize], 0);
+    assert_eq!(cpu.register.read(Registers::ZERO as usize), 0);
 
     for _ in 0 .. len {
         cpu.fetch()?;
@@ -394,7 +394,7 @@ pub fn test_nop() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register[Registers::ZERO as usize], 0);
+    assert_eq!(cpu.register.read(Registers::ZERO as usize), 0);
 	Ok(())
 }
 
@@ -415,7 +415,7 @@ pub fn test_beq() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 2);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 2);
 	Ok(())
 }
 
@@ -436,7 +436,7 @@ pub fn test_bne() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 2);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 2);
 	Ok(())
 }
 
@@ -457,8 +457,8 @@ pub fn test_jal() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 11);
-    assert_eq!(cpu.register[Registers::RA as usize], 8);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 11);
+    assert_eq!(cpu.register.read(Registers::RA as usize), 8);
 	Ok(())
 }
 
@@ -479,8 +479,8 @@ pub fn test_jalr() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T0 as usize], 11);
-    assert_eq!(cpu.register[Registers::T1 as usize], 12);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 11);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 12);
 	Ok(())
 }
 
@@ -501,7 +501,7 @@ pub fn test_blt() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 32);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 32);
 	Ok(())
 }
 
@@ -522,7 +522,7 @@ pub fn test_bltu() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 24);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 24);
 	Ok(())
 }
 
@@ -543,7 +543,7 @@ pub fn test_bge() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 24);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 24);
 	Ok(())
 }
 
@@ -564,7 +564,7 @@ pub fn test_bgeu() -> Result<(), Exception>  {
         }
     }
     
-    assert_eq!(cpu.register[Registers::T2 as usize], 32);
+    assert_eq!(cpu.register.read(Registers::T2 as usize), 32);
 	Ok(())
 }
 
@@ -585,9 +585,9 @@ pub fn test_lsb() -> Result<(), Exception> {
         }
     }
 
-    let addr = cpu.register[Registers::A0 as usize] as usize;
+    let addr = cpu.register.read(Registers::A0 as usize) as usize;
     assert_eq!(cpu.mmu.read64(cpu.csr, addr)?, 0x0000_0000_0000_00DD);
-    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFDD);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0xFFFF_FFFF_FFFF_FFDD);
 
     Ok(())
 }
@@ -609,9 +609,9 @@ pub fn test_lsh() -> Result<(), Exception> {
         }
     }
 
-    let addr = cpu.register[Registers::A0 as usize] as usize;
+    let addr = cpu.register.read(Registers::A0 as usize) as usize;
     assert_eq!(cpu.mmu.read64(cpu.csr, addr)?, 0x0000_0000_0000_FFFF);
-    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_FFFF);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0xFFFF_FFFF_FFFF_FFFF);
 
     Ok(())
 }
@@ -633,9 +633,9 @@ pub fn test_lsw() -> Result<(), Exception> {
         }
     }
 
-    let addr = cpu.register[Registers::A0 as usize] as usize;
+    let addr = cpu.register.read(Registers::A0 as usize) as usize;
     assert_eq!(cpu.mmu.read64(cpu.csr, addr)?, 0x0000_0000_FFFF_F000);
-    assert_eq!(cpu.register[Registers::T1 as usize], 0xFFFF_FFFF_FFFF_F000);
+    assert_eq!(cpu.register.read(Registers::T1 as usize), 0xFFFF_FFFF_FFFF_F000);
 
     Ok(())
 }
