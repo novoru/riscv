@@ -5,6 +5,16 @@ This is an experimental RISC-V emulator written in Rust.
 ```
 cargo run -- [filename]
 ```
+## 🐞 Debug
+To display debug information, launch emulator with -d:
+```
+cargo run -- -d [filename]
+```
+With the -s option, the program can be executed in steps.
+```
+cargo run -- -d -s [filename]
+```
+
 ## 🧪 Test
 ```
 make test
@@ -22,5 +32,5 @@ Documents
 - [RISC-V: Specifications](https://riscv.org/specifications/)
 
 Emulators
-- [d0iasmrvemu](https://github.com/d0iasm/rvemu)
-- [riscv/riscvOVPsim](https://github.com/riscv/riscv-ovpsim)
+- [riscv/riscv-isa-sim ](https://github.com/riscv/riscv-isa-sim)
+- [d0iasm/rvemu](https://github.com/d0iasm/rvemu)

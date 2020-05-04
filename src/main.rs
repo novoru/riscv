@@ -1,19 +1,33 @@
 mod test;
 pub mod emulator;
 
-use std::env;
+use structopt::StructOpt;
 use emulator::cpu::{ Cpu };
+
+#[derive(Debug, StructOpt)]
+struct Opt {
+    /// Activate debug mode
+    #[structopt(short, long)]
+    pub debug: bool,
+    
+    /// Step execution mode
+    #[structopt(short, long)]
+    pub step: bool,
+
+    /// Input file
+    #[structopt(short, long)]
+    pub file: String,
+
+}
 
 fn main() {
 
-    let args: Vec<_> = env::args().collect();
-    if args.len() != 2 {
-        println!("useage: ./riscv [filename]");
-        std::process::exit(0);
-    }
+    let opt = Opt::from_args();
 
     let mut cpu = Cpu::new();
-    cpu.load(&args[1]);
+    cpu.debug = opt.debug;
+    cpu.step = opt.step;
+    cpu.load(&opt.file);
 
     cpu.run();
 }

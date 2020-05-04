@@ -312,6 +312,15 @@ impl Csr {
         }
     }
     
+    pub fn set_priv_level(&mut self, priv_level: u8) {
+        match priv_level {
+            0b00    =>  self.priv_level = PrivLevel::USER,
+            0b01    =>  self.priv_level = PrivLevel::SUPERVISOR,
+            0b11    =>  self.priv_level = PrivLevel::MACHINE,
+            _       =>  unimplemented!(),
+        }
+    }
+
     pub fn write_bit(&mut self, csr: u16, digit: u8, bit: bool) {
         if bit {
             self.csr[csr as usize] |= 1 << digit;
