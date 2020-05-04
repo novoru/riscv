@@ -215,7 +215,7 @@ impl Cpu {
                                          ((self.instruction & 0x7FE0_0000) >> 20) |     // imm[10:1]
                                          ((self.instruction & 0x100000)    >>  9) |     // imm[11]
                                           (self.instruction  & 0xFF000)) as i32;        // imm[19:12]
-                offset = ((offset + (0b1000_0000_0000_0000)) & (0xFFFFF)) - 0b1000_0000_0000_0000;        // sign extention
+                offset = ((offset + (0b1000_0000_0000_0000)) & (0xFFFFF)) - 0b1000_0000_0000_0000;        // sign extension
                 if rd != 0 {
                     self.register.write(rd as usize, self.pc as u64 + 4);
                 };
@@ -231,7 +231,7 @@ impl Cpu {
             0b110_0111  => {
                 // Decode instruction
                 let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
-                imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+                imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
                 let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
                 let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
 
@@ -319,7 +319,7 @@ impl Cpu {
     fn decode_itype(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
-        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -374,7 +374,7 @@ impl Cpu {
                                ((self.instruction & 0x80) << 4) |
                                ((self.instruction & 0x7E00_0000) >> 20) |
                                ((self.instruction & 0xF00) >> 7)) as i16;
-        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
@@ -449,7 +449,7 @@ impl Cpu {
     fn decode_load(&mut  self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
-        imm = ((imm + (0b1000_0000_0000)) & 0xFFF) - 0b1000_0000_0000;     // sign extention
+        imm = ((imm + (0b1000_0000_0000)) & 0xFFF) - 0b1000_0000_0000;     // sign extension
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -459,14 +459,14 @@ impl Cpu {
             0b000   => {
                 let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let byte: u8        = self.mmu.read8(self.csr, addr)?;
-                let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extention
+                let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extension
                 self.register.write(rd as usize, data as u64);
             },
             // LH
             0b001   => {
                 let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let hword: u16      = self.mmu.read16(self.csr, addr)?;
-                let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extention
+                let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extension
                 self.register.write(rd as usize, data as u64);
             },
             // LW
@@ -474,7 +474,7 @@ impl Cpu {
                 let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let word: u32       = self.mmu.read32(self.csr, addr)?;
                 let data: i64       = ((word as i64 + 0b1000_0000_0000_0000_0000_0000_0000_0000) & 0xFFFF_FFFF)
-                                      - 0b1000_0000_0000_0000_0000_0000_0000_0000;   // sign extention
+                                      - 0b1000_0000_0000_0000_0000_0000_0000_0000;   // sign extension
                 self.register.write(rd as usize, data as u64);
             },
             _       => unimplemented!(),
@@ -487,7 +487,7 @@ impl Cpu {
         // Decode instruction
         let mut imm: i16    = (((self.instruction & 0xFE00_0000) >> 20) |
                                ((self.instruction & 0xF80) >> 7)) as i16;
-        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
@@ -627,7 +627,7 @@ impl Cpu {
     fn decode_rv64i_itype(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
-        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extention
+        imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
