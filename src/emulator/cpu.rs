@@ -275,7 +275,7 @@ impl Cpu {
                     // ADD
                     0b000   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_add(self.register.read(rs2 as usize))),
                     // SLL
-                    0b001   => self.register.write(rd as usize, self.register.read(rs1 as usize) << self.register.read(rs2 as usize)),
+                    0b001   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_shl(self.register.read(rs2 as usize) as u32)),
                     // SLT
                     0b010   => {
                         if (self.register.read(rs1 as usize)  as i64) < self.register.read(rs2 as usize) as i64 {
@@ -297,7 +297,7 @@ impl Cpu {
                     // XOR
                     0b100   => self.register.write(rd as usize, self.register.read(rs1 as usize) ^ self.register.read(rs2 as usize)),
                     // SRL
-                    0b101   => self.register.write(rd as usize, self.register.read(rs1 as usize) >> self.register.read(rs2 as usize)),
+                    0b101   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_shr(self.register.read(rs2 as usize) as u32)),
                     // OR
                     0b110   => self.register.write(rd as usize, self.register.read(rs1 as usize) | self.register.read(rs2 as usize)),
                     // AND
@@ -330,9 +330,9 @@ impl Cpu {
 
         match funct3 {
             // ADDI
-            0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64) + (imm as i64)) as u64),
+            0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64).wrapping_add(imm as i64)) as u64),
             // SLLI
-            0b001   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u64) << (imm as u64)) as u64),
+            0b001   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u64).wrapping_shl(imm as u32)) as u64),
             // SLTI
             0b010   => {
                 if (self.register.read(rs1 as usize)  as i64 ) < imm as i64 {
@@ -356,7 +356,7 @@ impl Cpu {
             0b101   => {
                 match (imm >> 5) & 0x7F {
                     // SRLI
-                    0b0000_0000 => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u64) >> (imm & 0x1F)) as u64),
+                    0b0000_0000 => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u64).wrapping_shr((imm & 0x1F) as u32)) as u64),
                     // SRAI
                     0b0010_0000 => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64) >> (imm & 0x1F)) as u64),
                     _           => unimplemented!(),
