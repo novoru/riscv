@@ -34,3 +34,6 @@ Documents
 Emulators
 - [riscv/riscv-isa-sim ](https://github.com/riscv/riscv-isa-sim)
 - [d0iasm/rvemu](https://github.com/d0iasm/rvemu)
+
+Tests
+- [riscv/riscv-tests](https://github.com/riscv/riscv-tests)
