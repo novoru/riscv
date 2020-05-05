@@ -67,6 +67,7 @@ impl Exception {
             PrivLevel::MACHINE      => {
                 cpu.csr.write(MEPC, cur_pc);
                 cpu.pc = cpu.csr.read(MTVEC) as usize;
+                cpu.pc -= 4;
                 cpu.csr.write(MCAUSE, self.exc_code() as u64);
                 match self {
                     Exception::InstAddrMisalign     |
@@ -85,6 +86,7 @@ impl Exception {
             PrivLevel::SUPERVISOR   => {
                 cpu.csr.write(MEPC, cur_pc);
                 cpu.pc = cpu.csr.read(STVEC) as usize;
+                cpu.pc -= 4;
                 cpu.csr.write(SCAUSE, self.exc_code() as u64);
                 match self {
                     Exception::InstAddrMisalign     |
@@ -106,6 +108,7 @@ impl Exception {
             PrivLevel::USER         => {
                 cpu.csr.write(UEPC, cur_pc);
                 cpu.pc = cpu.csr.read(UTVEC) as usize;
+                cpu.pc -= 4;
                 cpu.csr.write(UCAUSE, self.exc_code() as u64);
                 match self {
                     Exception::InstAddrMisalign     |

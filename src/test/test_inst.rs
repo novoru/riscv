@@ -212,7 +212,7 @@ pub fn test_auipc() -> Result<(), Exception>  {
 		cpu.pc += 4;
     }
     
-    assert_eq!(cpu.register.read(Registers::T0 as usize), 0xFFFF_F000);
+    assert_eq!(cpu.register.read(Registers::T0 as usize), 0xFFFF_FFFF_FFFF_F000);
 	Ok(())
 }
 

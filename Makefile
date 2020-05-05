@@ -1,4 +1,5 @@
 SUBDIRS=./src/test/testcase
+RVTESTS=./src/test/riscv-tests
 
 run:
 	cargo run

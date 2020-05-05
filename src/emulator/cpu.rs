@@ -11,6 +11,7 @@ const NREGISTERS:   usize = 32;
 const INIT_PC:      usize = 0;
 
 // General Registers (standardized names as part of the RISC-V application binary interface (ABI))
+#[derive(Copy, Clone)]
 pub enum Registers {
     ZERO,   // x0:  hardwired to 0, ignores writes
     RA,     // x1:  return address for jumps
@@ -118,13 +119,14 @@ impl XRegisters {
 }
 
 pub struct Cpu {
-    pub register: XRegisters,           // General registers
-    pub instruction: Instruction,           // Current instruction
-    pub pc: usize,                          // Program counter
-    pub mmu: Mmu,                           // MMU (Memory Management Unit)
-    pub csr: Csr,
-    pub debug: bool,
-    pub step: bool,
+    pub register: XRegisters,       // General registers
+    pub instruction: Instruction,   // Current instruction
+    pub pc: usize,                  // Program counter
+    pub mmu: Mmu,                   // MMU (Memory Management Unit)
+    pub csr: Csr,                   // CSRs (Control/Status Registers)
+    pub debug: bool,                // Debug flag
+    pub step: bool,                 // Step execution mode flag
+    watchpoint: (Registers, u64),
 }
 
 impl Cpu {
@@ -137,6 +139,7 @@ impl Cpu {
             csr: Csr::new(),
             debug: false,
             step: false,
+            watchpoint: (Registers::ZERO, 1),
         }
     }
 
@@ -166,10 +169,14 @@ impl Cpu {
                 Err(exception)  => exception.take_trap(self),
             }
             
-            if self.debug { println!("[INFO] pc: 0x{:08x}", self.pc + 0x40); }
+            if self.debug { println!("[INFO] pc: 0x{:08x}", self.pc); }
             if self.debug { println!("{}", inspect_instruciton(self.instruction)); }
+            if self.debug { println!("[INFO] mtvec: 0x{:08x}", self.csr.read(MTVEC)); }
+            if self.debug { println!("[INFO] stvec: 0x{:08x}", self.csr.read(STVEC)); }
+            if self.debug { println!("[INFO] utvec: 0x{:08x}", self.csr.read(UTVEC)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
-            if self.debug { println!("\n"); }
+            if self.step { stdin().read_line(&mut input); }
+            if self.debug && (self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1) { return; }
 
             match self.execute() {
                 Ok(_)           => {},
@@ -178,7 +185,6 @@ impl Cpu {
 
             self.pc += 4;
 
-            if self.step { stdin().read_line(&mut input); }
         }
     }
 
@@ -205,9 +211,7 @@ impl Cpu {
             // LUI
             0b011_0111  => self.register.write(rd as usize, ((imm as i32 & 0xF_FFFF) << 12) as i64 as u64),
             // AUIPC
-            0b001_0111  => {
-                self.register.write(rd as usize, (((imm as i64) << 12) + self.pc as i64) as u64);
-            },
+            0b001_0111  => self.register.write(rd as usize, (((imm as i32) << 12) as i64 + self.pc as i64) as u64),
             // JAL
             0b110_1111  => {
                 // signed offset in multiples of 2 bytes
@@ -640,6 +644,13 @@ impl Cpu {
 
         Ok(())
     }
+
+    // Setting Watchpoints
+    pub fn watch(&mut self, register: Registers, val: u64) {
+        self.watchpoint.0 = register;
+        self.watchpoint.1 = val;
+    }
+
 }
 
 fn inspect_instruciton(instruction: Instruction) -> String {

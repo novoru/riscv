@@ -1,6 +1,6 @@
-LD = riscv64-linux-gnu-ld
-AS = riscv64-linux-gnu-as
-OBJCOPY = riscv64-linux-gnu-objcopy
+LD = riscv64-unknown-elf-ld
+AS = riscv64-unknown-elf-as
+OBJCOPY = riscv64-unknown-elf-objcopy
 
 CFLAGS  = -nostdlib -O0
 ASFLAGS = -fno-pic -march=rv64i -mabi=lp64
