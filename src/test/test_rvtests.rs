@@ -14,7 +14,6 @@ macro_rules! add_test {
             let mut cpu = Cpu::new();
             cpu.load(&filename);
 
-            cpu.debug = true;
             cpu.watch(Registers::GP, 1);
 
             cpu.run();

@@ -152,7 +152,7 @@ impl Cpu {
         }
         
         for (i, byte) in binary.iter().enumerate() {
-            self.mmu.write8(i, *byte);
+            self.mmu.write8(self.csr, i, *byte).unwrap();
         }
 
         len
@@ -176,7 +176,7 @@ impl Cpu {
             if self.debug { println!("[INFO] utvec: 0x{:08x}", self.csr.read(UTVEC)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
             if self.step { stdin().read_line(&mut input); }
-            if self.debug && (self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1) { return; }
+            if self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1 { return; }
 
             match self.execute() {
                 Ok(_)           => {},
@@ -477,8 +477,7 @@ impl Cpu {
             0b010   => {
                 let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let word: u32       = self.mmu.read32(self.csr, addr)?;
-                let data: i64       = ((word as i64 + 0b1000_0000_0000_0000_0000_0000_0000_0000) & 0xFFFF_FFFF)
-                                      - 0b1000_0000_0000_0000_0000_0000_0000_0000;   // sign extension
+                let data: i64       = word as i32 as i64;   // sign extension
                 self.register.write(rd as usize, data as u64);
             },
             _       => unimplemented!(),
@@ -501,19 +500,19 @@ impl Cpu {
             0b000   => {
                 let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let byte: u8    = (self.register.read(rs2 as usize) & 0xFF) as u8;
-                self.mmu.write8(addr, byte);
+                self.mmu.write8(self.csr, addr, byte)?;
             },
             // SH
             0b001   => {
                 let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let hword: u16  = (self.register.read(rs2 as usize) & 0xFFFF) as u16;
-                self.mmu.write16(addr, hword);
+                self.mmu.write16(self.csr, addr, hword)?;
             },
             // SW
             0b010   => {
                 let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let word: u32   = (self.register.read(rs2 as usize) & 0xFFFF_FFFF) as u32;
-                self.mmu.write32(addr, word);
+                self.mmu.write32(self.csr, addr, word)?;
             },
             _       => unimplemented!(),
         }
