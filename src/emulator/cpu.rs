@@ -239,11 +239,11 @@ impl Cpu {
                 let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
                 let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
 
+                let addr = self.register.read(rs1);
                 if rd != 0 {
                     self.register.write(rd as usize, ((self.pc as u64) + 4) & 0xFFFF_FFFF_FFFF_FFFE);
                 }
-
-                self.pc = (self.register.read(rs1) as i64  + imm as i64) as usize;
+                self.pc = (addr as i32  + imm as i32) as i64 as usize;
                 if self.pc == 0 {
                     std::process::exit(0);
                 }
