@@ -34,16 +34,17 @@ impl Memory {
 
     pub fn write16(&mut self, paddr: usize, data: u16) {
         self.write8(paddr, (data & 0xFF) as u8);
-        self.write8(paddr + 1, (data >> 8 & 0xFF) as u8);
+        self.write8(paddr + 1, ((data >> 8) & 0xFF) as u8);
     }
 
     pub fn write32(&mut self, paddr: usize, data: u32) {
         self.write16(paddr, (data & 0xFFFF) as u16);
-        self.write16(paddr + 2, (data >> 16 & 0xFFFF) as u16);
+        self.write16(paddr + 2, ((data >> 16) & 0xFFFF) as u16);
     }
 
     pub fn write64(&mut self, paddr: usize, data: u64) {
+        eprintln!("  [INFO] data = 0x{:16x}", data);
         self.write32(paddr, (data & 0xFFFF_FFFF) as u32);
-        self.write32(paddr + 4, (data >> 32 & 0xFFFF_FFFF) as u32);
+        self.write32(paddr + 4, ((data >> 32) & 0xFFFF_FFFF) as u32);
     }
 }

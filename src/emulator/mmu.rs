@@ -61,22 +61,19 @@ impl Mmu {
 
     pub fn write16(&mut self, csr: Csr, vaddr: usize, data: u16) -> Result<(), Exception> {
         let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write8(paddr, (data & 0xFF) as u8);
-        self.memory.write8(paddr + 1, (data >> 8 & 0xFF) as u8);
+        self.memory.write16(paddr, data);
         Ok(())
     }
 
     pub fn write32(&mut self, csr: Csr, vaddr: usize, data: u32) -> Result<(), Exception> {
         let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write16(paddr, (data & 0xFFFF) as u16);
-        self.memory.write16(paddr + 2, (data >> 16 & 0xFFFF) as u16);
+        self.memory.write32(paddr, data);
         Ok(())
     }
 
     pub fn write64(&mut self, csr: Csr, vaddr: usize, data: u64) -> Result<(), Exception> { 
-       let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write32(paddr, (data & 0xFFFF) as u32);
-        self.memory.write32(paddr + 4, (data >> 16 & 0xFFFF) as u32);
+        let paddr = self.translate_addr(csr, vaddr)?;
+        self.memory.write64(paddr, data);
         Ok(())
     }
 

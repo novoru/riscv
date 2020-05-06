@@ -14,6 +14,7 @@ macro_rules! add_test {
             let mut cpu = Cpu::new();
             cpu.load(&filename);
 
+            // If GP equals 1, test is passed.
             cpu.watch(Registers::GP, 1);
 
             cpu.run();
@@ -58,4 +59,15 @@ add_test!(rv64ui_p_sub);
 add_test!(rv64ui_p_subw);
 add_test!(rv64ui_p_xor);
 add_test!(rv64ui_p_xori);
+add_test!(rv64ui_p_lb);
+add_test!(rv64ui_p_sb);
+add_test!(rv64ui_p_lh);
+add_test!(rv64ui_p_sh);
+add_test!(rv64ui_p_lw);
+add_test!(rv64ui_p_sw);
+add_test!(rv64ui_p_ld);
+add_test!(rv64ui_p_sd);
+add_test!(rv64ui_p_lbu);
+add_test!(rv64ui_p_lhu);
+add_test!(rv64ui_p_lwu);
 //add_test!(rv64ui_p_fence_i);

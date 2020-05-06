@@ -479,6 +479,31 @@ impl Cpu {
                 let data: i64       = word as i32 as i64;   // sign extension
                 self.register.write(rd as usize, data as u64);
             },
+            // LD
+            0b011   => {
+                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let dword: u64       = self.mmu.read64(self.csr, addr)?;
+                self.register.write(rd as usize, dword);
+                if self.debug { eprintln!("  [INFO] mem[0x{:08x}] = 0x{:16x}", addr, self.register.read(rd as usize)); };
+            },
+            // LBU
+            0b100   => {
+                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let byte: u8        = self.mmu.read8(self.csr, addr)?;
+                self.register.write(rd as usize, byte as u64);
+            },
+            // LHU
+            0b101   => {
+                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let hword: u16      = self.mmu.read16(self.csr, addr)?;
+                self.register.write(rd as usize, hword as u64);
+            },
+            // LWU
+            0b110   => {
+                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let word: u32       = self.mmu.read32(self.csr, addr)?;
+                self.register.write(rd as usize, word as u64);
+            },
             _       => unimplemented!(),
         }
 
@@ -512,6 +537,14 @@ impl Cpu {
                 let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
                 let word: u32   = (self.register.read(rs2 as usize) & 0xFFFF_FFFF) as u32;
                 self.mmu.write32(self.csr, addr, word)?;
+            },
+            // SD
+            0b011   => {
+                let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let dword: u64  = self.register.read(rs2 as usize);
+                if self.debug { eprintln!("  [INFO] dword = 0x{:16x}", dword); };
+                self.mmu.write64(self.csr, addr, dword)?;
+                if self.debug { eprintln!("  [INFO] mem[0x{:08x}] = 0x{:16x}", addr, self.mmu.read64(self.csr, addr).unwrap()); };
             },
             _       => unimplemented!(),
         }
@@ -722,14 +755,17 @@ fn inspect_instruciton(instruction: Instruction) -> String {
             0b000       => output = format!("{}: LB", output),
             0b001       => output = format!("{}: LH", output),
             0b010       => output = format!("{}: LW", output),
+            0b011       => output = format!("{}: LD", output),
             0b100       => output = format!("{}: LBU", output),
             0b101       => output = format!("{}: LHU", output),
+            0b110       => output = format!("{}: LWU", output),
             _           => return format!("{}: unknown", output),
         },
         0b010_0011  => match funct3 {
             0b000       => output = format!("{}: SB", output),
             0b001       => output = format!("{}: SH", output),
             0b010       => output = format!("{}: SW", output),
+            0b011       => output = format!("{}: SD", output),
             _           => return format!("{}: unknown", output),
         },
         0b001_0011  => match funct3 {

@@ -20,9 +20,9 @@ cargo run -- -d -s [filename]
 make test
 ```
 ## 🛠 Features
-- [ ] RV32/RV64G
+- [x] RV32/RV64G
     - [x] RV32I (without fence/ebreak)
-    - [ ] RV64I
+    - [x] RV64I
     - [x] RV32/RV64 *Zicsr*
 - [x] CSRs
 - [ ] Virtual Memory
