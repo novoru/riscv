@@ -1,7 +1,6 @@
 use crate::emulator::cpu::*;
 use std::io;
 
-
 #[macro_export]
 macro_rules! add_test {
 ($str: ident) => {
@@ -71,4 +70,9 @@ add_test!(rv64ui_p_lbu);
 add_test!(rv64ui_p_lhu);
 add_test!(rv64ui_p_lwu);
 add_test!(rv64ui_p_simple);
-//add_test!(rv64ui_p_fence_i);
+
+//RV64 user-level, integer multiplication and division
+add_test!(rv64um_p_mul);
+add_test!(rv64um_p_mulh);
+add_test!(rv64um_p_mulhsu);
+add_test!(rv64um_p_mulhu);

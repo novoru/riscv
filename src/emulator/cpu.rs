@@ -206,9 +206,9 @@ impl Cpu {
             // I-type
             0b001_0011  => self.decode_itype()?,
             // LUI
-            0b011_0111  => self.register.write(rd as usize, ((imm & 0xF_FFFF) << 12) as i32 as i64 as u64),
+            0b011_0111  => self.register.write(rd, ((imm & 0xF_FFFF) << 12) as i32 as i64 as u64),
             // AUIPC
-            0b001_0111  => self.register.write(rd as usize, (((imm as i32) << 12) as i64 + self.pc as i64) as u64),
+            0b001_0111  => self.register.write(rd, (((imm as i32) << 12) as i64 + self.pc as i64) as u64),
             // JAL
             0b110_1111  => {
                 // signed offset in multiples of 2 bytes
@@ -218,7 +218,7 @@ impl Cpu {
                                           (self.instruction  & 0xFF000)) as i32;        // imm[19:12]
                 offset = ((offset + (0b1000_0000_0000_0000)) & (0xFFFFF)) - 0b1000_0000_0000_0000;        // sign extension
                 if rd != 0 {
-                    self.register.write(rd as usize, self.pc as u64 + 4);
+                    self.register.write(rd, self.pc as u64 + 4);
                 };
                 self.pc = (self.pc as i64 + offset as i64) as usize;
                 if self.pc == 0 {
@@ -238,7 +238,7 @@ impl Cpu {
 
                 let addr = self.register.read(rs1);
                 if rd != 0 {
-                    self.register.write(rd as usize, ((self.pc as u64) + 4) & 0xFFFF_FFFF_FFFF_FFFE);
+                    self.register.write(rd, ((self.pc as u64) + 4) & 0xFFFF_FFFF_FFFF_FFFE);
                 }
                 self.pc = (addr as i32  + imm as i32) as i64 as usize;
                 if self.pc == 0 {
@@ -272,47 +272,48 @@ impl Cpu {
             0b000_0000 => {    
                 match funct3 {
                     // ADD
-                    0b000   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_add(self.register.read(rs2 as usize))),
+                    0b000   => self.register.write(rd, self.register.read(rs1).wrapping_add(self.register.read(rs2))),
                     // SLL
-                    0b001   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_shl(self.register.read(rs2 as usize) as u32)),
+                    0b001   => self.register.write(rd, self.register.read(rs1).wrapping_shl(self.register.read(rs2) as u32)),
                     // SLT
                     0b010   => {
-                        if (self.register.read(rs1 as usize)  as i64) < self.register.read(rs2 as usize) as i64 {
-                            self.register.write(rd as usize, 1);
+                        if (self.register.read(rs1)  as i64) < self.register.read(rs2) as i64 {
+                            self.register.write(rd, 1);
                         }
                         else {
-                            self.register.write(rd as usize, 0);
+                            self.register.write(rd, 0);
                         }
                     },
                     // SLTU
                     0b011   => {
-                        if (self.register.read(rs1 as usize)) < self.register.read(rs2 as usize) {
-                            self.register.write(rd as usize, 1);
+                        if (self.register.read(rs1)) < self.register.read(rs2) {
+                            self.register.write(rd, 1);
                         }
                         else {
-                            self.register.write(rd as usize, 0);
+                            self.register.write(rd, 0);
                         }
                     },
                     // XOR
-                    0b100   => self.register.write(rd as usize, self.register.read(rs1 as usize) ^ self.register.read(rs2 as usize)),
+                    0b100   => self.register.write(rd, self.register.read(rs1) ^ self.register.read(rs2)),
                     // SRL
-                    0b101   => self.register.write(rd as usize, self.register.read(rs1 as usize).wrapping_shr(self.register.read(rs2 as usize) as u32)),
+                    0b101   => self.register.write(rd, self.register.read(rs1).wrapping_shr(self.register.read(rs2) as u32)),
                     // OR
-                    0b110   => self.register.write(rd as usize, self.register.read(rs1 as usize) | self.register.read(rs2 as usize)),
+                    0b110   => self.register.write(rd, self.register.read(rs1) | self.register.read(rs2)),
                     // AND
-                    0b111   => self.register.write(rd as usize, self.register.read(rs1 as usize) & self.register.read(rs2 as usize)),
+                    0b111   => self.register.write(rd, self.register.read(rs1) & self.register.read(rs2)),
                     _       => unimplemented!(),
                 }
             },
-            0b010_0000       => {
+            0b010_0000      => {
                 match funct3 {
                     // SUB
-                    0b000   => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i64 - self.register.read(rs2 as usize) as i64) as u64),
+                    0b000   => self.register.write(rd, (self.register.read(rs1) as i64 - self.register.read(rs2) as i64) as u64),
                     // SRA
-                    0b101   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64).wrapping_shr(self.register.read(rs2 as usize) as u32)) as u64),
+                    0b101   => self.register.write(rd, ((self.register.read(rs1) as i64).wrapping_shr(self.register.read(rs2) as u32)) as u64),
                     _       => unimplemented!(),
                 }
             },
+            0b000_0001      => self.decode_rv32m()?,
             _               => unimplemented!(),
         }
 
@@ -329,42 +330,42 @@ impl Cpu {
 
         match funct3 {
             // ADDI
-            0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64).wrapping_add(imm as i64)) as u64),
+            0b000   => self.register.write(rd, ((self.register.read(rs1) as i64).wrapping_add(imm as i64)) as u64),
             // SLLI
-            0b001   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u64).wrapping_shl(imm as u32)) as u64),
+            0b001   => self.register.write(rd, ((self.register.read(rs1) as u64).wrapping_shl(imm as u32)) as u64),
             // SLTI
             0b010   => {
-                if (self.register.read(rs1 as usize)  as i64 ) < imm as i64 {
-                    self.register.write(rd as usize, 1);
+                if (self.register.read(rs1)  as i64 ) < imm as i64 {
+                    self.register.write(rd, 1);
                 }
                 else {
-                    self.register.write(rd as usize, 0);
+                    self.register.write(rd, 0);
                 }
             },
             // SLTIU
             0b011   => {
-                if (self.register.read(rs1 as usize)  as u64 ) < imm as u64 {
-                    self.register.write(rd as usize, 1);
+                if (self.register.read(rs1)  as u64 ) < imm as u64 {
+                    self.register.write(rd, 1);
                 }
                 else {
-                    self.register.write(rd as usize, 0);
+                    self.register.write(rd, 0);
                 }
             },
             // XORI
-            0b100   => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i64 ^ (imm as i64)) as u64),
+            0b100   => self.register.write(rd, (self.register.read(rs1) as i64 ^ (imm as i64)) as u64),
             0b101   => {
                 match (imm >> 5) & 0x7F {
                     // SRLI
-                    0b0000_0000 => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u64).wrapping_shr((imm & 0x1F) as u32)) as u64),
+                    0b0000_0000 => self.register.write(rd, ((self.register.read(rs1) as u64).wrapping_shr((imm & 0x1F) as u32)) as u64),
                     // SRAI
-                    0b0010_0000 => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64) >> (imm & 0x1F)) as u64),
+                    0b0010_0000 => self.register.write(rd, ((self.register.read(rs1) as i64) >> (imm & 0x1F)) as u64),
                     _           => unimplemented!(),
                 }
             },
             // ORI
-            0b110   => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i64 | (imm as i64)) as u64),
+            0b110   => self.register.write(rd, (self.register.read(rs1) as i64 | (imm as i64)) as u64),
             // ANDI
-            0b111   => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i64 & (imm as i64)) as u64),
+            0b111   => self.register.write(rd, (self.register.read(rs1) as i64 & (imm as i64)) as u64),
             _       => unimplemented!(),
         }
 
@@ -385,7 +386,7 @@ impl Cpu {
         match funct3 {
             // BEQ
             0b000   => {
-                if self.register.read(rs1 as usize) == self.register.read(rs2 as usize) {
+                if self.register.read(rs1) == self.register.read(rs2) {
                     self.pc = (self.pc as i64 + imm as i64) as usize;
                     if self.pc == 0 {
                         std::process::exit(0);
@@ -395,7 +396,7 @@ impl Cpu {
             },
             // BNE
             0b001   => {
-                if self.register.read(rs1 as usize) != self.register.read(rs2 as usize) {
+                if self.register.read(rs1) != self.register.read(rs2) {
                     self.pc = (self.pc as i64 + imm as i64) as usize;
                     if self.pc == 0 {
                         std::process::exit(0);
@@ -405,7 +406,7 @@ impl Cpu {
             },
             // BLT
             0b100   => {
-                if (self.register.read(rs1 as usize) as i64) < (self.register.read(rs2 as usize) as i64) {
+                if (self.register.read(rs1) as i64) < (self.register.read(rs2) as i64) {
                     self.pc = (self.pc as i64 + imm as i64) as usize;
                     if self.pc == 0 {
                         std::process::exit(0);
@@ -415,7 +416,7 @@ impl Cpu {
             },
             // BGE
             0b101   => {
-                if (self.register.read(rs1 as usize) as i64) >= (self.register.read(rs2 as usize) as i64) {
+                if (self.register.read(rs1) as i64) >= (self.register.read(rs2) as i64) {
                     self.pc = (self.pc as i64 + imm as i64) as usize;
                     if self.pc == 0 {
                         std::process::exit(0);
@@ -425,7 +426,7 @@ impl Cpu {
             },
             // BLTU
             0b110   => {
-                if self.register.read(rs1 as usize) < self.register.read(rs2 as usize) {
+                if self.register.read(rs1) < self.register.read(rs2) {
                     self.pc = (self.pc as i64 + imm as i64) as usize;
                     if self.pc == 0 {
                         std::process::exit(0);
@@ -435,7 +436,7 @@ impl Cpu {
             },
             // BGEU
             0b111   => {
-                if self.register.read(rs1 as usize) >= self.register.read(rs2 as usize) {
+                if self.register.read(rs1) >= self.register.read(rs2) {
                     self.pc = (self.pc as i64 + imm as i64) as usize;
                     if self.pc == 0 {
                         std::process::exit(0);
@@ -460,49 +461,48 @@ impl Cpu {
         match funct3 {
             // LB
             0b000   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let byte: u8        = self.mmu.read8(self.csr, addr)?;
                 let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extension
-                self.register.write(rd as usize, data as u64);
+                self.register.write(rd, data as u64);
             },
             // LH
             0b001   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let hword: u16      = self.mmu.read16(self.csr, addr)?;
                 let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extension
-                self.register.write(rd as usize, data as u64);
+                self.register.write(rd, data as u64);
             },
             // LW
             0b010   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let word: u32       = self.mmu.read32(self.csr, addr)?;
                 let data: i64       = word as i32 as i64;   // sign extension
-                self.register.write(rd as usize, data as u64);
+                self.register.write(rd, data as u64);
             },
             // LD
             0b011   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let dword: u64       = self.mmu.read64(self.csr, addr)?;
-                self.register.write(rd as usize, dword);
-                if self.debug { eprintln!("  [INFO] mem[0x{:08x}] = 0x{:16x}", addr, self.register.read(rd as usize)); };
+                self.register.write(rd, dword);
             },
             // LBU
             0b100   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let byte: u8        = self.mmu.read8(self.csr, addr)?;
-                self.register.write(rd as usize, byte as u64);
+                self.register.write(rd, byte as u64);
             },
             // LHU
             0b101   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let hword: u16      = self.mmu.read16(self.csr, addr)?;
-                self.register.write(rd as usize, hword as u64);
+                self.register.write(rd, hword as u64);
             },
             // LWU
             0b110   => {
-                let addr: usize     = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
+                let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let word: u32       = self.mmu.read32(self.csr, addr)?;
-                self.register.write(rd as usize, word as u64);
+                self.register.write(rd, word as u64);
             },
             _       => unimplemented!(),
         }
@@ -522,29 +522,27 @@ impl Cpu {
         match funct3{
             // SB
             0b000   => {
-                let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
-                let byte: u8    = (self.register.read(rs2 as usize) & 0xFF) as u8;
+                let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
+                let byte: u8    = (self.register.read(rs2) & 0xFF) as u8;
                 self.mmu.write8(self.csr, addr, byte)?;
             },
             // SH
             0b001   => {
-                let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
-                let hword: u16  = (self.register.read(rs2 as usize) & 0xFFFF) as u16;
+                let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
+                let hword: u16  = (self.register.read(rs2) & 0xFFFF) as u16;
                 self.mmu.write16(self.csr, addr, hword)?;
             },
             // SW
             0b010   => {
-                let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
-                let word: u32   = (self.register.read(rs2 as usize) & 0xFFFF_FFFF) as u32;
+                let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
+                let word: u32   = (self.register.read(rs2) & 0xFFFF_FFFF) as u32;
                 self.mmu.write32(self.csr, addr, word)?;
             },
             // SD
             0b011   => {
-                let addr: usize = (self.register.read(rs1 as usize) as i64 + imm as i64) as usize;
-                let dword: u64  = self.register.read(rs2 as usize);
-                if self.debug { eprintln!("  [INFO] dword = 0x{:16x}", dword); };
+                let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
+                let dword: u64  = self.register.read(rs2);
                 self.mmu.write64(self.csr, addr, dword)?;
-                if self.debug { eprintln!("  [INFO] mem[0x{:08x}] = 0x{:16x}", addr, self.mmu.read64(self.csr, addr).unwrap()); };
             },
             _       => unimplemented!(),
         }
@@ -615,41 +613,41 @@ impl Cpu {
             0b001   => {
                 if rd != 0 {
                     let data: u64 = self.csr.read(csr) as u64;
-                    self.register.write(rd as usize, data);
+                    self.register.write(rd, data);
                 }
-                self.csr.write(csr, self.register.read(rs1 as usize));
+                self.csr.write(csr, self.register.read(rs1));
             },
             // CSRRS
             0b010   => {
                 let data: u64 = self.csr.read(csr) as u64;
-                self.register.write(rd as usize, data);
-                self.csr.write(csr, data | self.register.read(rs1 as usize));
+                self.register.write(rd, data);
+                self.csr.write(csr, data | self.register.read(rs1));
             },
             // CSRRC
             0b011   => {
                 let mut data: u64 = self.csr.read(csr);
-                self.register.write(rd as usize, data);
-                data &= !(self.register.read(rs1 as usize));
+                self.register.write(rd, data);
+                data &= !(self.register.read(rs1));
                 self.csr.write(csr, data);
             },
             // CSRRWI
             0b101   => {
                 if rd != 0 {
                     let data: u64 = self.csr.read(csr) as u64;
-                    self.register.write(rd as usize, data);
+                    self.register.write(rd, data);
                 }
                 self.csr.write(csr, uimm as u64);
             },
             // CSRRSI
             0b110   => {
                 let data: u64 = self.csr.read(csr) as u64;
-                self.register.write(rd as usize, data);
+                self.register.write(rd, data);
                 self.csr.write(csr, data | (uimm as u64));
             },
             // CSRRCI
             0b111   => {
                 let mut data: u64 = self.csr.read(csr);
-                self.register.write(rd as usize, data);
+                self.register.write(rd, data);
                 data &= !(uimm) as u64;
                 self.csr.write(csr, data);
             },
@@ -670,15 +668,15 @@ impl Cpu {
 
         match funct3 {
             // ADDIW
-            0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_add(imm as i32)) as u64),
+            0b000   => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_add(imm as i32)) as u64),
             // SLLIW
-            0b001   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_shl(imm as u32)) as u64),
+            0b001   => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shl(imm as u32)) as u64),
             0b101   => {
                 match funct7 {
                     // SRLIW
-                    0b000_0000  => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u32).wrapping_shr(imm as u32))  as i32 as u64),
+                    0b000_0000  => self.register.write(rd, ((self.register.read(rs1) as u32).wrapping_shr(imm as u32))  as i32 as u64),
                     // SRAIW
-                    0b010_0000  => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_shr(imm as u32)) as u64),
+                    0b010_0000  => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr(imm as u32)) as u64),
                     _           => unimplemented!(),
                 }
             },
@@ -698,21 +696,65 @@ impl Cpu {
         match funct7 {
             0b000_0000  => match funct3 {
                 // ADDW
-                0b000       => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i32).wrapping_add(self.register.read(rs2 as usize) as i32) as u64),
+                0b000       => self.register.write(rd, (self.register.read(rs1) as i32).wrapping_add(self.register.read(rs2) as i32) as u64),
                 // SLLW
-                0b001       => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i32).wrapping_shl(self.register.read(rs2 as usize) as u32) as u64),
+                0b001       => self.register.write(rd, (self.register.read(rs1) as i32).wrapping_shl(self.register.read(rs2) as u32) as u64),
                 // SRLW
-                0b101       => self.register.write(rd as usize, (self.register.read(rs1 as usize) as u32).wrapping_shr(self.register.read(rs2 as usize) as u32) as i32 as u64),
+                0b101       => self.register.write(rd, (self.register.read(rs1) as u32).wrapping_shr(self.register.read(rs2) as u32) as i32 as u64),
                 _           => unimplemented!(),
             },
             0b010_0000  => match funct3 {
                 // SUBW
-                0b000       => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_sub(self.register.read(rs2 as usize) as i32)) as i64 as u64),
+                0b000       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_sub(self.register.read(rs2) as i32)) as i64 as u64),
                 // SRAW
-                0b101       => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_shr((self.register.read(rs2 as usize) & 0x1F) as u32)) as u64),
+                0b101       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr((self.register.read(rs2) & 0x1F) as u32)) as u64),
                 _           => unimplemented!(),
             },
             _           => unimplemented!(),
+        }
+
+        Ok(())
+    }
+
+    fn decode_rv32m(&mut self) -> Result<(), Exception> {
+        // Decode instruction
+        let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+
+        match funct3 {
+            // MUL
+            0b000   => {
+                let result: u128 = (self.register.read(rs1) as i64 as i128).wrapping_mul(self.register.read(rs2) as i64 as i128) as u128;
+                self.register.write(rd, (result & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
+            },
+            // MULH
+            0b001   => {
+                let result: u128 = (self.register.read(rs1) as i64 as i128).wrapping_mul(self.register.read(rs2) as i64 as i128) as u128;
+                self.register.write(rd, ((result >> 64) & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
+            },
+            // MULHSU
+            0b010   => {
+                let result: u128 = (self.register.read(rs1) as i64 as i128).wrapping_mul(self.register.read(rs2) as u64 as i128) as u128;
+                if self.debug { eprintln!("  [INFO] result: 0x{:032x}", result); };
+                self.register.write(rd, ((result >> 64) & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
+            },
+            // MULHU
+            0b011   => {
+                let result: u128 = (self.register.read(rs1) as u128).wrapping_mul(self.register.read(rs2) as u128) as u128;
+                if self.debug { eprintln!("  [INFO] result: 0x{:032x}", result); };
+                self.register.write(rd, ((result >> 64) & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
+            },
+            // DIV
+            0b100   => (),
+            // DIVU
+            0b101   => (),
+            // REM
+            0b110   => (),
+            // REMU
+            0b111   => (),
+            _       => (),
         }
 
         Ok(())
@@ -786,20 +828,46 @@ fn inspect_instruciton(instruction: Instruction) -> String {
         0b011_0011  => match funct3 {
             0b000       =>  match funct7 {
                 0b000_0000  => output = format!("{}: ADD", output),
+                0b000_0001  => output = format!("{}: MUL", output),
                 0b010_0000  => output = format!("{}: SUB", output),
                 _           => return format!("{}: unknown", output),
             },
-            0b001       => output = format!("{}: SLL", output),
-            0b010       => output = format!("{}: SLT", output),
-            0b011       => output = format!("{}: SLTU", output),
-            0b100       => output = format!("{}: XOR", output),
+            0b001       => match funct7 {
+                0b000_0000  => output = format!("{}: SLL", output),
+                0b000_0001  => output = format!("{}: MULH", output),
+                _           => return format!("{}: unknown", output),
+            },
+            0b010       => match funct7 {
+                0b000_0000  => output = format!("{}: SLT", output),
+                0b000_0001  => output = format!("{}: MULHSU", output),
+                _           => return format!("{}: unknown", output),
+            },
+            0b011       => match funct7 {
+                0b000_0000  => output = format!("{}: SLTU", output),
+                0b000_0001  => output = format!("{}: MULHU", output),
+                _           => return format!("{}: unknown", output),
+            },
+            0b100       => match funct7 {
+                0b000_0000  => output = format!("{}: XOR", output),
+                0b000_0001  => output = format!("{}: DIV", output),
+                _           => return format!("{}: unknown", output),
+            },
             0b101       =>  match funct7 {
                 0b000_0000  => output = format!("{}: SRL", output),
+                0b000_0001  => output = format!("{}: DIVU", output),
                 0b010_0000  => output = format!("{}: SRA", output),
                 _           => return format!("{}: unknown", output),
             },
-            0b110       => output = format!("{}: OR", output),
-            0b111       => output = format!("{}: AND", output),
+            0b110       => match funct7 {
+                0b000_0000  => output = format!("{}: OR", output),
+                0b000_0001  => output = format!("{}: REM", output),
+                _           => return format!("{}: unknown", output),
+            },
+            0b111       => match funct7 {
+                0b000_0000  => output = format!("{}: AND", output),
+                0b000_0001  => output = format!("{}: REMU", output),
+                _           => return format!("{}: unknown", output),
+            },
             _           => return format!("{}: unknown", output),
         },
         0b000_1111  => match funct3 {
