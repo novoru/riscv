@@ -76,3 +76,6 @@ add_test!(rv64um_p_mul);
 add_test!(rv64um_p_mulh);
 add_test!(rv64um_p_mulhsu);
 add_test!(rv64um_p_mulhu);
+add_test!(rv64um_p_div);
+add_test!(rv64um_p_divu);
+add_test!(rv64um_p_rem);

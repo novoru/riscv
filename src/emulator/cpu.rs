@@ -747,13 +747,51 @@ impl Cpu {
                 self.register.write(rd, ((result >> 64) & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
             },
             // DIV
-            0b100   => (),
+            0b100   => {
+                let divisor = self.register.read(rs2);
+                if divisor == 0 {
+                    self.register.write(rd, -1 as i64 as u64);
+                }
+                else {
+                    let result: u64 = (self.register.read(rs1)as i64).wrapping_div(divisor as i64) as u64;
+                    self.register.write(rd, result);
+                }
+            },
             // DIVU
-            0b101   => (),
+            0b101   => {
+                let divisor = self.register.read(rs2);
+                if divisor == 0 {
+                    self.register.write(rd, -1 as i64 as u64);
+                }
+                else {
+                    let result: u64 = (self.register.read(rs1)as u64).wrapping_div(divisor);
+                    self.register.write(rd, result);
+                }
+            },
             // REM
-            0b110   => (),
+            0b110   => {
+                let dividend = self.register.read(rs1) as i64;
+                let divisor = self.register.read(rs2);
+                if divisor == 0 {
+                    self.register.write(rd, dividend as u64);
+                }
+                else {
+                    let result: u64 = dividend.wrapping_rem(divisor as i64) as u64;
+                    self.register.write(rd, result);
+                }
+            },
             // REMU
-            0b111   => (),
+            0b111   => {
+                let dividend = self.register.read(rs1);
+                let divisor = self.register.read(rs2);
+                if divisor == 0 {
+                    self.register.write(rd, dividend as u64);
+                }
+                else {
+                    let result = dividend.wrapping_rem(divisor);
+                    self.register.write(rd, result);
+                }
+            },
             _       => (),
         }
 
