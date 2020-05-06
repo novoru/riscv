@@ -252,8 +252,8 @@ impl Cpu {
             0b111_0011  => self.decode_system()?,
             // RV64I Integer Register-Immediate Instructions
             0b001_1011  => self.decode_rv64i_itype()?,
-            // RV64I Integer Register-Register Operations
-            0b011_1011  => self.decode_rv64i_rtype()?,
+            // RV64I/M Integer Register-Register Operations
+            0b011_1011  => self.decode_rv64im_rtype()?,
             _           => unimplemented!(),
         }
 
@@ -686,7 +686,7 @@ impl Cpu {
         Ok(())
     }
 
-    fn decode_rv64i_rtype(&mut self) -> Result<(), Exception> {
+    fn decode_rv64im_rtype(&mut self) -> Result<(), Exception> {
         let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
@@ -708,6 +708,61 @@ impl Cpu {
                 0b000       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_sub(self.register.read(rs2) as i32)) as i64 as u64),
                 // SRAW
                 0b101       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr((self.register.read(rs2) & 0x1F) as u32)) as u64),
+                _           => unimplemented!(),
+            },
+            // RV64M
+            0b000_0001  => match funct3 {
+                // MULW
+                0b000       => {
+                    let result: i64 = (self.register.read(rs1) as i32).wrapping_mul(self.register.read(rs2) as i32) as i64;
+                    self.register.write(rd, result as u64);
+                },
+                // DIVW
+                0b100       => {
+                    let divisor = self.register.read(rs2);
+                    if divisor == 0 {
+                        self.register.write(rd, -1 as i64 as u64);
+                    }
+                    else {
+                        let result: i64 = (self.register.read(rs1)as i32).wrapping_div(divisor as i32) as i64;
+                        self.register.write(rd, result as u64);
+                    }
+                },
+                // DIVUW
+                0b101       => {
+                    let divisor = self.register.read(rs2);
+                    if divisor == 0 {
+                        self.register.write(rd, -1 as i64 as u64);
+                    }
+                    else {
+                        let result: u64 = (self.register.read(rs1)as u32).wrapping_div(divisor as u32) as i32 as i64 as u64;
+                        self.register.write(rd, result);
+                    }
+                },
+                // REMW
+                0b110       => {
+                    let dividend = self.register.read(rs1) as i32;
+                    let divisor = self.register.read(rs2);
+                    if divisor == 0 {
+                        self.register.write(rd, dividend as u64);
+                    }
+                    else {
+                        let result: u64 = dividend.wrapping_rem(divisor as i32) as u64;
+                        self.register.write(rd, result);
+                    }
+                },
+                // REMUW
+                0b111       => {
+                    let dividend = self.register.read(rs1) as u32;
+                    let divisor = self.register.read(rs2);
+                    if divisor == 0 {
+                        self.register.write(rd, dividend as i32 as i64 as u64);
+                    }
+                    else {
+                        let result: u64 = dividend.wrapping_rem(divisor as u32) as i32 as i64 as u64;
+                        self.register.write(rd, result);
+                    }
+                },
                 _           => unimplemented!(),
             },
             _           => unimplemented!(),
@@ -954,6 +1009,14 @@ fn inspect_instruciton(instruction: Instruction) -> String {
             0b010_0000  => match funct3 {
                 0b000       => output = format!("{}: SUBW", output),
                 0b101       => output = format!("{}: SRAW", output),
+                _           => return format!("{}: unknown", output),
+            }
+            0b000_0001  => match funct3 {
+                0b000       => output = format!("{}: MULW", output),
+                0b100       => output = format!("{}: DIVW", output),
+                0b101       => output = format!("{}: DIVUW", output),
+                0b110       => output = format!("{}: REMW", output),
+                0b111       => output = format!("{}: REMUW", output),
                 _           => return format!("{}: unknown", output),
             }
             _           => return format!("{}: unknown", output),
