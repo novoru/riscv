@@ -70,4 +70,5 @@ add_test!(rv64ui_p_sd);
 add_test!(rv64ui_p_lbu);
 add_test!(rv64ui_p_lhu);
 add_test!(rv64ui_p_lwu);
+add_test!(rv64ui_p_simple);
 //add_test!(rv64ui_p_fence_i);
