@@ -21,8 +21,8 @@ make test
 ```
 ## 🛠 Features
 - [x] RV32/RV64G
-    - [x] RV32I (without fence/ebreak)
-    - [x] RV64I
+    - [x] RV32I/RV64I (without fence/ebreak)
+    - [ ] RV32M/RV64M
     - [x] RV32/RV64 *Zicsr*
 - [x] CSRs
 - [ ] Virtual Memory
