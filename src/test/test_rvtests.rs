@@ -23,6 +23,7 @@ macro_rules! add_test {
     };
 }
 
+// RV64 user-level, integer only, virtual memory is disabled, only core 0 boots up
 add_test!(rv64ui_p_add);
 add_test!(rv64ui_p_addi);
 add_test!(rv64ui_p_addiw);
@@ -41,10 +42,20 @@ add_test!(rv64ui_p_lui);
 add_test!(rv64ui_p_or);
 add_test!(rv64ui_p_ori);
 add_test!(rv64ui_p_sll);
+add_test!(rv64ui_p_sllw);
 add_test!(rv64ui_p_slli);
+add_test!(rv64ui_p_slliw);
 add_test!(rv64ui_p_srl);
+add_test!(rv64ui_p_srlw);
 add_test!(rv64ui_p_srli);
+add_test!(rv64ui_p_srliw);
+add_test!(rv64ui_p_sra);
+add_test!(rv64ui_p_sraw);
+add_test!(rv64ui_p_srai);
+add_test!(rv64ui_p_sraiw);
+add_test!(rv64ui_p_addw);
 add_test!(rv64ui_p_sub);
+add_test!(rv64ui_p_subw);
 add_test!(rv64ui_p_xor);
 add_test!(rv64ui_p_xori);
 //add_test!(rv64ui_p_fence_i);

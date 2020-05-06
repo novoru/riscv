@@ -93,7 +93,7 @@ pub struct XRegisters {
 impl fmt::Display for XRegisters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, reg) in self.register.into_iter().enumerate() {
-            write!(f, "  x{:2}({})\t= 0x{:016x}\n", i, reg_name(i as u8), reg);
+            write!(f, "  x{:2}({})\t= 0x{:016x}\n", i, reg_name(i as u8), reg)?;
         }
         write!(f, "")
     }
@@ -171,9 +171,6 @@ impl Cpu {
             
             if self.debug { println!("[INFO] pc: 0x{:08x}", self.pc); }
             if self.debug { println!("{}", inspect_instruciton(self.instruction)); }
-            if self.debug { println!("[INFO] mtvec: 0x{:08x}", self.csr.read(MTVEC)); }
-            if self.debug { println!("[INFO] stvec: 0x{:08x}", self.csr.read(STVEC)); }
-            if self.debug { println!("[INFO] utvec: 0x{:08x}", self.csr.read(UTVEC)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
             if self.step { stdin().read_line(&mut input); }
             if self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1 { return; }
@@ -209,7 +206,7 @@ impl Cpu {
             // I-type
             0b001_0011  => self.decode_itype()?,
             // LUI
-            0b011_0111  => self.register.write(rd as usize, ((imm as i32 & 0xF_FFFF) << 12) as i64 as u64),
+            0b011_0111  => self.register.write(rd as usize, ((imm & 0xF_FFFF) << 12) as i32 as i64 as u64),
             // AUIPC
             0b001_0111  => self.register.write(rd as usize, (((imm as i32) << 12) as i64 + self.pc as i64) as u64),
             // JAL
@@ -253,8 +250,10 @@ impl Cpu {
             0b000_1111  => return Ok(()),      // treat as nop
             // SYSTEM
             0b111_0011  => self.decode_system()?,
-            // RV64I
+            // RV64I Integer Register-Immediate Instructions
             0b001_1011  => self.decode_rv64i_itype()?,
+            // RV64I Integer Register-Register Operations
+            0b011_1011  => self.decode_rv64i_rtype()?,
             _           => unimplemented!(),
         }
 
@@ -310,7 +309,7 @@ impl Cpu {
                     // SUB
                     0b000   => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i64 - self.register.read(rs2 as usize) as i64) as u64),
                     // SRA
-                    0b101   => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i64 >> self.register.read(rs2 as usize)) as u64),
+                    0b101   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i64).wrapping_shr(self.register.read(rs2 as usize) as u32)) as u64),
                     _       => unimplemented!(),
                 }
             },
@@ -631,6 +630,7 @@ impl Cpu {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
+        let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
@@ -638,7 +638,48 @@ impl Cpu {
         match funct3 {
             // ADDIW
             0b000   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_add(imm as i32)) as u64),
+            // SLLIW
+            0b001   => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_shl(imm as u32)) as u64),
+            0b101   => {
+                match funct7 {
+                    // SRLIW
+                    0b000_0000  => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as u32).wrapping_shr(imm as u32))  as i32 as u64),
+                    // SRAIW
+                    0b010_0000  => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_shr(imm as u32)) as u64),
+                    _           => unimplemented!(),
+                }
+            },
             _       => unimplemented!(),
+        }
+
+        Ok(())
+    }
+
+    fn decode_rv64i_rtype(&mut self) -> Result<(), Exception> {
+        let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
+        let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+
+        match funct7 {
+            0b000_0000  => match funct3 {
+                // ADDW
+                0b000       => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i32).wrapping_add(self.register.read(rs2 as usize) as i32) as u64),
+                // SLLW
+                0b001       => self.register.write(rd as usize, (self.register.read(rs1 as usize) as i32).wrapping_shl(self.register.read(rs2 as usize) as u32) as u64),
+                // SRLW
+                0b101       => self.register.write(rd as usize, (self.register.read(rs1 as usize) as u32).wrapping_shr(self.register.read(rs2 as usize) as u32) as i32 as u64),
+                _           => unimplemented!(),
+            },
+            0b010_0000  => match funct3 {
+                // SUBW
+                0b000       => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_sub(self.register.read(rs2 as usize) as i32)) as i64 as u64),
+                // SRAW
+                0b101       => self.register.write(rd as usize, ((self.register.read(rs1 as usize) as i32).wrapping_shr((self.register.read(rs2 as usize) & 0x1F) as u32)) as u64),
+                _           => unimplemented!(),
+            },
+            _           => unimplemented!(),
         }
 
         Ok(())
@@ -751,8 +792,30 @@ fn inspect_instruciton(instruction: Instruction) -> String {
         },        
         0b001_1011  => match funct3 {
             0b000       => output = format!("{}: ADDIW", output),
+            0b001       => output = format!("{}: SLLIW", output),
+            0b101       => {
+                match funct7 {
+                    0b000_0000  => output = format!("{}: SRLIW", output),
+                    0b010_0000  => output = format!("{}: SRAIW", output),
+                    _           => return format!("{}: unknown", output),
+                }
+            },
             _           => return format!("{}: unknown", output),
         },
+        0b011_1011  => match funct7 {
+            0b000_0000  => match funct3 {
+                0b000       => output = format!("{}: ADDW", output),
+                0b001       => output = format!("{}: SLLW", output),
+                0b101       => output = format!("{}: SRLW", output),
+                _           => return format!("{}: unknown", output),
+            }
+            0b010_0000  => match funct3 {
+                0b000       => output = format!("{}: SUBW", output),
+                0b101       => output = format!("{}: SRAW", output),
+                _           => return format!("{}: unknown", output),
+            }
+            _           => return format!("{}: unknown", output),
+        }
         _           => return format!("{}: unknown", output),
     }
 
