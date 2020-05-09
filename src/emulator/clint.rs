@@ -1,6 +1,6 @@
 /* 
  * Core-Local Interruptor (CLINT)
- * The CLINT block holds memory-mapped control and status registers associated with softwareand timer interrupts
+ * The CLINT block holds memory-mapped control and status registers associated with software and timer interrupts
  */
 
 use crate::emulator::bus::*;
@@ -35,13 +35,13 @@ pub const MTIME_BASE:       usize = 0xBFF8;
 pub const MTIME_TOP:        usize = 0xC000;
 
 pub struct Clint {
-    clint: [u8; CLINT_SIZE],
+    clint: Vec<u8>,
 }
 
 impl Clint {
     pub fn new() -> Self {
         Clint {
-            clint: [0; CLINT_SIZE],
+            clint: vec![0; CLINT_SIZE],
         }
     }
 
@@ -97,7 +97,7 @@ impl Clint {
         }
     }
 
-    fn read_msip(&self, addr: usize) -> u8{
+    fn read_msip(&self, addr: usize) -> u8 {
         match addr {
             MSIP_BASE   => { return self.clint[addr] & 0x1; },  // The least significant bit is reflected in the MSIP bit of the mip CSR
             _           => 0,                                   // Other bits in the msip register are hardwired to zero. 

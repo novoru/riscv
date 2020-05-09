@@ -1,5 +1,6 @@
 use crate::emulator::dram::*;
 use crate::emulator::clint::*;
+use crate::emulator::plic::*;
 
 /*
  * Physical Address Layout
@@ -43,13 +44,15 @@ pub const DRAM_TOP:     usize = 0x87FF_FFFF;
 pub struct Bus {
     dram: Dram,
     clint: Clint,
+    plic: Plic,
 }
 
 impl Bus {
     pub fn new() -> Self {
         Bus {
-            dram: Dram::new(),
-            clint: Clint::new(),
+            dram:   Dram::new(),
+            clint:  Clint::new(),
+            plic:   Plic::new(),
         }
     }
 
@@ -60,7 +63,7 @@ impl Bus {
             // CLINT
             CLINT_BASE ... CLINT_TOP        => self.clint.write8(paddr - CLINT_BASE, data),
             // PLIC
-            PLIC_BASE ... PLIC_TOP          => unimplemented!(),
+            PLIC_BASE ... PLIC_TOP          => self.plic.write8(paddr - PLIC_BASE, data),
             // UART0
             UART0_BASE ... UART0_TOP        => unimplemented!(),
             // VIRTIO
@@ -93,7 +96,7 @@ impl Bus {
             // CLINT
             CLINT_BASE ... CLINT_TOP        => self.clint.read8(paddr - CLINT_BASE),
             // PLIC
-            PLIC_BASE ... PLIC_TOP          => unimplemented!(),
+            PLIC_BASE ... PLIC_TOP          => self.plic.read8(paddr - PLIC_BASE),
             // UART0
             UART0_BASE ... UART0_TOP        => unimplemented!(),
             // VIRTIO

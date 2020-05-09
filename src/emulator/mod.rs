@@ -5,3 +5,4 @@ pub mod csr;
 pub mod exception;
 pub mod bus;
 pub mod clint;
+pub mod plic;
