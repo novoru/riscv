@@ -1,6 +1,6 @@
-use crate::emulator::memory::Memory;
 use crate::emulator::csr::{ Csr, SATP, PrivLevel };
 use crate::emulator::exception::{ Exception };
+use crate::emulator::bus::Bus;
 
 pub const PAGE_SIZE: usize  = 1024 * 4;     // Page size: 4KiB (2**12)
 pub const LEVELS: i8        = 3;            // Paging levels (Sv39)
@@ -16,14 +16,14 @@ enum ACCESS {
 
 // Memory Management Unit
 pub struct Mmu {
-    memory: Memory,
+    bus: Bus,
     access: ACCESS,
 }
 
 impl Mmu {
     pub fn new() -> Self {
         Mmu {
-            memory: Memory::new(),
+            bus: Bus::new(),
             access: ACCESS::NONE,
         }
     }
@@ -31,7 +31,7 @@ impl Mmu {
     pub fn read8(&mut self, csr: Csr, vaddr: usize) -> Result<u8, Exception> {
         self.access = ACCESS::LOAD;
         let paddr = self.translate_addr(csr, vaddr)?;
-        Ok(self.memory.read8(paddr))
+        Ok(self.bus.read8(paddr))
     }
     
     pub fn read16(&mut self, csr: Csr, vaddr: usize) -> Result<u16, Exception> {
@@ -55,25 +55,25 @@ impl Mmu {
     pub fn write8(&mut self, csr: Csr, vaddr: usize, data: u8) -> Result<(), Exception>  {
         self.access = ACCESS::STORE;
         let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write8(paddr, data);
+        self.bus.write8(paddr, data);
         Ok(())
     }
 
     pub fn write16(&mut self, csr: Csr, vaddr: usize, data: u16) -> Result<(), Exception> {
         let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write16(paddr, data);
+        self.bus.write16(paddr, data);
         Ok(())
     }
 
     pub fn write32(&mut self, csr: Csr, vaddr: usize, data: u32) -> Result<(), Exception> {
         let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write32(paddr, data);
+        self.bus.write32(paddr, data);
         Ok(())
     }
 
     pub fn write64(&mut self, csr: Csr, vaddr: usize, data: u64) -> Result<(), Exception> { 
         let paddr = self.translate_addr(csr, vaddr)?;
-        self.memory.write64(paddr, data);
+        self.bus.write64(paddr, data);
         Ok(())
     }
 
@@ -142,7 +142,7 @@ impl Mmu {
             }
             */
 
-            pte = self.memory.read64(addr);
+            pte = self.bus.read64(addr);
 
             // Step 3
             if pte_v(pte) == 0u64 || pte_w(pte) == 1u64 {

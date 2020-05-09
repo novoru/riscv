@@ -1,5 +1,6 @@
 pub mod cpu;
-pub mod memory;
+pub mod dram;
 pub mod mmu;
 pub mod csr;
 pub mod exception;
+pub mod bus;

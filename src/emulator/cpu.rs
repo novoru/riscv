@@ -1,14 +1,16 @@
 use crate::emulator::mmu::Mmu;
-use crate::emulator::memory::MEMORY_SIZE;
+use crate::emulator::dram::*;
 use crate::emulator::csr::*;
 use crate::emulator::exception::Exception;
+use crate::emulator::bus::*;
+
 use std::fs::read;
 use std::fmt;
 
 type Instruction    = u32;
 
 const NREGISTERS:   usize = 32;
-const INIT_PC:      usize = 0;
+const INIT_PC:      usize = DRAM_BASE;
 
 // General Registers (standardized names as part of the RISC-V application binary interface (ABI))
 #[derive(Copy, Clone)]
@@ -101,8 +103,10 @@ impl fmt::Display for XRegisters {
 
 impl XRegisters {
     fn new() -> Self {
+        let mut register = [0; NREGISTERS];
+        register[Registers::SP as usize] = DRAM_TOP as u64;
         XRegisters {
-            register: [0; NREGISTERS],
+            register: register,
         }
     }
 
@@ -147,12 +151,12 @@ impl Cpu {
         let binary = read(filename).unwrap();
         let len = binary.len();
 
-        if len > MEMORY_SIZE {
+        if len > DRAM_SIZE {
             panic!("[ERROR] too large binary({}): {} Byte", filename, len);
         }
         
         for (i, byte) in binary.iter().enumerate() {
-            self.mmu.write8(self.csr, i, *byte).unwrap();
+            self.mmu.write8(self.csr, DRAM_BASE+i, *byte).unwrap();
         }
 
         len
@@ -240,7 +244,7 @@ impl Cpu {
                 if rd != 0 {
                     self.register.write(rd, ((self.pc as u64) + 4) & 0xFFFF_FFFF_FFFF_FFFE);
                 }
-                self.pc = (addr as i32  + imm as i32) as i64 as usize;
+                self.pc = (addr as i64  + imm as i64) as u64 as usize;
                 if self.pc == 0 {
                     std::process::exit(0);
                 }
@@ -792,13 +796,11 @@ impl Cpu {
             // MULHSU
             0b010   => {
                 let result: u128 = (self.register.read(rs1) as i64 as i128).wrapping_mul(self.register.read(rs2) as u64 as i128) as u128;
-                if self.debug { eprintln!("  [INFO] result: 0x{:032x}", result); };
                 self.register.write(rd, ((result >> 64) & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
             },
             // MULHU
             0b011   => {
                 let result: u128 = (self.register.read(rs1) as u128).wrapping_mul(self.register.read(rs2) as u128) as u128;
-                if self.debug { eprintln!("  [INFO] result: 0x{:032x}", result); };
                 self.register.write(rd, ((result >> 64) & 0xFFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF) as u64);
             },
             // DIV

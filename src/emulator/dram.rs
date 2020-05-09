@@ -1,35 +1,34 @@
-pub const MEMORY_SIZE: usize = 1024 * 1024 * 4;     // 4MiB
+pub const DRAM_SIZE: usize = 1024 * 1024 * 128;     // 128MiB
 
-// Physical Memory
-pub struct Memory {
-    rom: Vec<u8>,
+pub struct Dram {
+    dram: Vec<u8>,
 }
 
-impl Memory {
+impl Dram {
     pub fn new() -> Self {
-        Memory {
-            rom: vec![0; MEMORY_SIZE],
+        Dram {
+            dram: vec![0; DRAM_SIZE],
         }
     }
 
-    pub fn read8(&mut self, paddr: usize) -> u8 {
-        self.rom[paddr]
+    pub fn read8(&self, paddr: usize) -> u8 {
+        self.dram[paddr]
     }
     
-    pub fn read16(&mut self, paddr: usize) -> u16 {
+    pub fn read16(&self, paddr: usize) -> u16 {
         self.read8(paddr) as u16 | (self.read8(paddr + 1)  as u16) << 8
     }
 
-    pub fn read32(&mut self, paddr: usize) -> u32 {
+    pub fn read32(&self, paddr: usize) -> u32 {
         self.read16(paddr) as u32 | (self.read16(paddr + 2)  as u32) << 16
     }
     
-    pub fn read64(&mut self, paddr: usize) -> u64 {
+    pub fn read64(&self, paddr: usize) -> u64 {
         self.read32(paddr) as u64 | (self.read32(paddr + 4) as u64) << 32
     }
 
     pub fn write8(&mut self, paddr: usize, data: u8) {
-        self.rom[paddr] = data;
+        self.dram[paddr] = data;
     }
 
     pub fn write16(&mut self, paddr: usize, data: u16) {
@@ -43,7 +42,6 @@ impl Memory {
     }
 
     pub fn write64(&mut self, paddr: usize, data: u64) {
-        eprintln!("  [INFO] data = 0x{:16x}", data);
         self.write32(paddr, (data & 0xFFFF_FFFF) as u32);
         self.write32(paddr + 4, ((data >> 32) & 0xFFFF_FFFF) as u32);
     }

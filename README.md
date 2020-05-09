@@ -15,6 +15,24 @@ With the -s option, the program can be executed in steps.
 cargo run -- -d -s [filename]
 ```
 
+## 💾 Memory layout
+
+Physical Memory (based on qemu's hw/riscv/virt.c:)
+
+Base|Top|Description
+---|---|---
+0x0000_1000|0x0000_10FF|boot ROM
+0x0000_1100|0x01FF_FFFF|Reserved
+0x0200_0000|0x0200_FFFF|CLINT
+0x0201_0000|0x0BFF_FFFF|Reserved
+0x0c00_0000|0x0FFF_FFFF|PLIC
+0x1000_0000|0x1000_00FF|UART0
+0x1000_1000|0x1000_1FFF|VIRTIO
+0x1000_2000|0x7FFF_FFFF|Reserved
+0x8000_0000|0x87FF_FFFF|DRAM (128MiB)
+0x8800_0000|0xFFFF_FFFF|Reserved
+
+
 ## 🧪 Test
 ```
 make test
@@ -26,6 +44,10 @@ make test
     - [x] RV32/RV64 *Zicsr*
 - [x] CSRs
 - [ ] Virtual Memory
+- [ ] CLINT
+- [ ] PLIC
+- [ ] UART
+- [ ] VIRTIO
 
 ## 📚 References
 Documents
