@@ -1,6 +1,7 @@
 use crate::emulator::dram::*;
 use crate::emulator::clint::*;
 use crate::emulator::plic::*;
+use crate::emulator::uart::*;
 
 /*
  * Physical Address Layout
@@ -42,9 +43,10 @@ pub const DRAM_TOP:     usize = 0x87FF_FFFF;
 
 
 pub struct Bus {
-    dram: Dram,
-    clint: Clint,
-    plic: Plic,
+    dram:   Dram,
+    clint:  Clint,
+    plic:   Plic,
+    uart0:  Uart,
 }
 
 impl Bus {
@@ -53,6 +55,7 @@ impl Bus {
             dram:   Dram::new(),
             clint:  Clint::new(),
             plic:   Plic::new(),
+            uart0:  Uart::new(),
         }
     }
 
@@ -65,7 +68,7 @@ impl Bus {
             // PLIC
             PLIC_BASE ... PLIC_TOP          => self.plic.write8(paddr - PLIC_BASE, data),
             // UART0
-            UART0_BASE ... UART0_TOP        => unimplemented!(),
+            UART0_BASE ... UART0_TOP        => self.uart0.write8(paddr - UART0_BASE, data),
             // VIRTIO
             VIRTIO_BASE ... VIRTIO_TOP      => unimplemented!(),
             // DRAM
@@ -89,7 +92,7 @@ impl Bus {
         self.write32(paddr + 4, ((data >> 32) & 0xFFFF_FFFF) as u32);
     }
 
-    pub fn read8(&self, paddr: usize) -> u8 {
+    pub fn read8(&mut self, paddr: usize) -> u8 {
         match paddr {
             // boot ROM
             BOOT_ROM_BASE ... BOOT_ROM_TOP  => unimplemented!(),
@@ -98,12 +101,12 @@ impl Bus {
             // PLIC
             PLIC_BASE ... PLIC_TOP          => self.plic.read8(paddr - PLIC_BASE),
             // UART0
-            UART0_BASE ... UART0_TOP        => unimplemented!(),
+            UART0_BASE ... UART0_TOP        => self.uart0.read8(paddr - UART0_BASE),
             // VIRTIO
             VIRTIO_BASE ... VIRTIO_TOP      => unimplemented!(),
             // DRAM
             DRAM_BASE ... DRAM_TOP          => self.dram.read8(paddr - DRAM_BASE),
-            _                               => unimplemented!(),
+            _                               => panic!("0x{:016x}", paddr),
         }
     }
     
