@@ -84,7 +84,7 @@ impl Exception {
                 cpu.csr.write_bits(MSTATUS, 11..13, 0b00);
             },
             PrivLevel::SUPERVISOR   => {
-                cpu.csr.write(MEPC, cur_pc);
+                cpu.csr.write(SEPC, cur_pc);
                 cpu.pc = cpu.csr.read(STVEC) as usize;
                 cpu.pc -= 4;
                 cpu.csr.write(SCAUSE, self.exc_code() as u64);
@@ -97,9 +97,9 @@ impl Exception {
                     Exception::StorePageFault       => cpu.csr.write(STVAL, cur_pc),
                     _                               => cpu.csr.write(STVAL, 0),
                 }
-                let sstatus = cpu.csr.read_bit(MSTATUS, 1);
-                cpu.csr.write_bit(MSTATUS, 5, sstatus);
-                cpu.csr.write_bit(MSTATUS, 1, false);
+                let sstatus = cpu.csr.read_bit(SSTATUS, 1);
+                cpu.csr.write_bit(SSTATUS, 5, sstatus);
+                cpu.csr.write_bit(SSTATUS, 1, false);
                 match prev_level {
                     PrivLevel::USER => cpu.csr.write_bit(SSTATUS, 8, false),
                     _               => cpu.csr.write_bit(SSTATUS, 8, true),

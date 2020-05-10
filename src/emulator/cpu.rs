@@ -197,7 +197,7 @@ impl Cpu {
     pub fn execute(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let imm:    u32 = ((self.instruction >> 12) & 0xF_FFFF) as u32;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7) & 0x1F) as usize;
         let opcode: u8 = (self.instruction & 0x7F) as u8;
         
         match opcode {
@@ -212,7 +212,9 @@ impl Cpu {
             // LUI
             0b011_0111  => self.register.write(rd, ((imm & 0xF_FFFF) << 12) as i32 as i64 as u64),
             // AUIPC
-            0b001_0111  => self.register.write(rd, (((imm as i32) << 12) as i64 + self.pc as i64) as u64),
+            0b001_0111  => {
+                self.register.write(rd, (((imm as i32) << 12) as i64 + self.pc as i64) as u64);
+            },
             // JAL
             0b110_1111  => {
                 // signed offset in multiples of 2 bytes
@@ -238,7 +240,7 @@ impl Cpu {
                 let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
                 imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
                 let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
-                let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+                let rd:     usize   = ((self.instruction >> 7)  & 0xF) as usize;
 
                 let addr = self.register.read(rs1);
                 if rd != 0 {
@@ -258,7 +260,7 @@ impl Cpu {
             0b001_1011  => self.decode_rv64i_itype()?,
             // RV64I/M Integer Register-Register Operations
             0b011_1011  => self.decode_rv64im_rtype()?,
-            _           => unimplemented!(),
+            _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -270,7 +272,7 @@ impl Cpu {
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct7 {
             0b000_0000 => {    
@@ -305,7 +307,7 @@ impl Cpu {
                     0b110   => self.register.write(rd, self.register.read(rs1) | self.register.read(rs2)),
                     // AND
                     0b111   => self.register.write(rd, self.register.read(rs1) & self.register.read(rs2)),
-                    _       => unimplemented!(),
+                    _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
                 }
             },
             0b010_0000      => {
@@ -314,11 +316,11 @@ impl Cpu {
                     0b000   => self.register.write(rd, (self.register.read(rs1) as i64 - self.register.read(rs2) as i64) as u64),
                     // SRA
                     0b101   => self.register.write(rd, ((self.register.read(rs1) as i64).wrapping_shr(self.register.read(rs2) as u32)) as u64),
-                    _       => unimplemented!(),
+                    _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
                 }
             },
             0b000_0001      => self.decode_rv32m()?,
-            _               => unimplemented!(),
+            _               => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -330,7 +332,7 @@ impl Cpu {
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // ADDI
@@ -363,14 +365,14 @@ impl Cpu {
                     0b0000_0000 => self.register.write(rd, ((self.register.read(rs1) as u64).wrapping_shr((imm & 0x1F) as u32)) as u64),
                     // SRAI
                     0b0010_0000 => self.register.write(rd, ((self.register.read(rs1) as i64) >> (imm & 0x1F)) as u64),
-                    _           => unimplemented!(),
+                    _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
                 }
             },
             // ORI
             0b110   => self.register.write(rd, (self.register.read(rs1) as i64 | (imm as i64)) as u64),
             // ANDI
             0b111   => self.register.write(rd, (self.register.read(rs1) as i64 & (imm as i64)) as u64),
-            _       => unimplemented!(),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -448,7 +450,7 @@ impl Cpu {
                     self.pc -= 4;
                 }
             },
-            _       => unimplemented!(),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -460,7 +462,7 @@ impl Cpu {
         imm = ((imm + (0b1000_0000_0000)) & 0xFFF) - 0b1000_0000_0000;     // sign extension
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // LB
@@ -508,7 +510,7 @@ impl Cpu {
                 let word: u32       = self.mmu.read32(self.csr, addr)?;
                 self.register.write(rd, word as u64);
             },
-            _       => unimplemented!(),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -548,7 +550,7 @@ impl Cpu {
                 let dword: u64  = self.register.read(rs2);
                 self.mmu.write64(self.csr, addr, dword)?;
             },
-            _       => unimplemented!(),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -569,7 +571,7 @@ impl Cpu {
                             PrivLevel::USER         => return Err(Exception::EnvCallUmode),
                             PrivLevel::SUPERVISOR   => return Err(Exception::EnvCallSmode),
                             PrivLevel::MACHINE      => return Err(Exception::EnvCallMmode),
-                            _                       => unimplemented!(),
+                            _                       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
                         }
                     },
                     // EBREAK
@@ -594,7 +596,7 @@ impl Cpu {
 
                         self.pc -= 4;
                     },
-                    _                   => unimplemented!(),
+                    _                   => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
                 }
             },
             // Zicsr
@@ -610,7 +612,7 @@ impl Cpu {
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let uimm:   u8      = ((self.instruction >> 15) & 0x1F) as u8;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // CSRRW
@@ -655,7 +657,7 @@ impl Cpu {
                 data &= !(uimm) as u64;
                 self.csr.write(csr, data);
             },
-            _       => unimplemented!(),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -668,7 +670,7 @@ impl Cpu {
         let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // ADDIW
@@ -681,10 +683,10 @@ impl Cpu {
                     0b000_0000  => self.register.write(rd, ((self.register.read(rs1) as u32).wrapping_shr(imm as u32))  as i32 as u64),
                     // SRAIW
                     0b010_0000  => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr(imm as u32)) as u64),
-                    _           => unimplemented!(),
+                    _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
                 }
             },
-            _       => unimplemented!(),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -695,7 +697,7 @@ impl Cpu {
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct7 {
             0b000_0000  => match funct3 {
@@ -705,14 +707,14 @@ impl Cpu {
                 0b001       => self.register.write(rd, (self.register.read(rs1) as i32).wrapping_shl(self.register.read(rs2) as u32) as u64),
                 // SRLW
                 0b101       => self.register.write(rd, (self.register.read(rs1) as u32).wrapping_shr(self.register.read(rs2) as u32) as i32 as u64),
-                _           => unimplemented!(),
+                _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
             },
             0b010_0000  => match funct3 {
                 // SUBW
                 0b000       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_sub(self.register.read(rs2) as i32)) as i64 as u64),
                 // SRAW
                 0b101       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr((self.register.read(rs2) & 0x1F) as u32)) as u64),
-                _           => unimplemented!(),
+                _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
             },
             // RV64M
             0b000_0001  => match funct3 {
@@ -767,9 +769,9 @@ impl Cpu {
                         self.register.write(rd, result);
                     }
                 },
-                _           => unimplemented!(),
+                _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
             },
-            _           => unimplemented!(),
+            _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -780,7 +782,7 @@ impl Cpu {
         let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7) & 0xF) as usize;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // MUL
@@ -869,7 +871,7 @@ fn inspect_instruciton(instruction: Instruction) -> String {
     let _rs2:    usize   = ((instruction >> 20) & 0x1F) as usize;
     let _rs1:    usize   = ((instruction >> 15) & 0x1F) as usize;
     let funct3: u8      = ((instruction >> 12) & 0x7) as u8;
-    let _rd:     usize   = ((instruction >> 7) & 0xF) as usize;
+    let _rd:     usize   = ((instruction >> 7) & 0x1F) as usize;
     let opcode: u8      = (instruction & 0x7F) as u8;
 
     let mut output = format!("[INFO] instruction(0x{:08x})", instruction);
