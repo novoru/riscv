@@ -6,6 +6,7 @@ use crate::emulator::bus::*;
 
 use std::fs::read;
 use std::fmt;
+use std::cmp::{ min, max };
 
 type Instruction    = u32;
 
@@ -260,6 +261,8 @@ impl Cpu {
             0b001_1011  => self.decode_rv64i_itype()?,
             // RV64I/M Integer Register-Register Operations
             0b011_1011  => self.decode_rv64im_rtype()?,
+            // RV64A
+            0b010_1111  => self.decode_rv64a()?,
             _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
@@ -851,7 +854,165 @@ impl Cpu {
                     self.register.write(rd, result);
                 }
             },
-            _       => (),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+        }
+
+        Ok(())
+    }
+
+    fn decode_rv64a(&mut self) -> Result<(), Exception> {
+        let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
+        let rs2:    usize   = ((self.instruction >> 20) & 0x1F) as usize;
+        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
+
+        match funct3 {
+            // RV32A
+            0b010   => match funct7 & 0x7C {
+                // LR.W
+                0b000_1000 => unimplemented!(),
+                // SC.W
+                0b000_1100 => unimplemented!(),
+                // AMOSWAP.W
+                0b000_0100 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, self.register.read(rs2))?;
+                    self.register.write(rs2, data);
+                },
+                // AMOADD.W
+                0b000_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data.wrapping_add(self.register.read(rs2)) as i32 as i64 as u64)?;
+                },
+                // AMOXOR.W
+                0b001_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data ^ (self.register.read(rs2) as i32 as i64 as u64))?;
+                },
+                // AMOAND.W
+                0b011_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data & (self.register.read(rs2) as i32 as i64 as u64))?;
+                },
+                // AMOOR.W
+                0b010_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data | (self.register.read(rs2) as i32 as i64 as u64))?;
+                },
+                // AMOMIN.W
+                0b100_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::min(data as i64, self.register.read(rs2) as i32 as i64) as u64)?;
+                },
+                // AMOMAX.W
+                0b101_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::max(data as i64, self.register.read(rs2) as i32 as i64) as u64)?;
+                },
+                // AMOMINU.W
+                0b110_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::min(data, self.register.read(rs2)))?;
+                },
+                // AMOMAXU.W
+                0b111_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::max(data, self.register.read(rs2)))?;
+                },
+                _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            },
+            // RV64A
+            0b011   => match funct7 & 0x7C {
+                // LR.D
+                0b000_1000 => unimplemented!(),
+                // SC.D
+                0b000_1100 => unimplemented!(),
+                // AMOSWAP.D
+                0b000_0100 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, self.register.read(rs2))?;
+                    self.register.write(rs2, data);
+                },
+                // AMOADD.D
+                0b000_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data.wrapping_add(self.register.read(rs2)))?;
+                },
+                // AMOXOR.D
+                0b001_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data ^ (self.register.read(rs2)))?;
+                },
+                // AMOAND.D
+                0b011_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data & (self.register.read(rs2)))?;
+                },
+                // AMOOR.D
+                0b010_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, data | (self.register.read(rs2)))?;
+                },
+                // AMOMIN.D
+                0b100_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::min(data as i64, self.register.read(rs2) as i64) as u64)?;
+                },
+                // AMOMAX.D
+                0b101_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::max(data as i64, self.register.read(rs2) as i64) as u64)?;
+                },
+                // AMOMINU.D
+                0b110_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::min(data, self.register.read(rs2)))?;
+                },
+                // AMOMAXU.D
+                0b111_0000 => {
+                    let addr = self.register.read(rs1) as usize;
+                    let data = self.mmu.read64(self.csr, addr)?;
+                    self.register.write(rd, data);
+                    self.mmu.write64(self.csr, addr, std::cmp::max(data, self.register.read(rs2)))?;
+                },
+                _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            },
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
         }
 
         Ok(())
@@ -1023,6 +1184,38 @@ fn inspect_instruciton(instruction: Instruction) -> String {
                 0b111       => output = format!("{}: REMUW", output),
                 _           => return format!("{}: unknown", output),
             }
+            _           => return format!("{}: unknown", output),
+        }
+        0b010_1111  => match funct3 {
+            0b010       => match funct7 & 0x7C {
+                0b000_1000     => output = format!("{}: LR.W", output),
+                0b000_1100     => output = format!("{}: SC.W", output),
+                0b000_0100     => output = format!("{}: AMOSWAP.W", output),
+                0b000_0000     => output = format!("{}: AMOADD.W", output),
+                0b001_0000     => output = format!("{}: AMOXOR.W", output),
+                0b011_0000     => output = format!("{}: AMOAND.W", output),
+                0b010_0000     => output = format!("{}: AMOOR.W", output),
+                0b100_0000     => output = format!("{}: AMOMIN.W", output),
+                0b101_0000     => output = format!("{}: AMOMAX.W", output),
+                0b110_0000     => output = format!("{}: AMOMINU.W", output),
+                0b111_0000     => output = format!("{}: AMOMAXU.W", output),
+                _           => return format!("{}: unknown", output),
+            },
+            0b011       => match funct7 & 0x7C {
+                0b000_1000     => output = format!("{}: LR.D", output),
+                0b000_1100     => output = format!("{}: SC.D", output),
+                0b000_0100     => output = format!("{}: AMOSWAP.D", output),
+                0b000_0000     => output = format!("{}: AMOADD.D", output),
+                0b001_0000     => output = format!("{}: AMOXOR.D", output),
+                0b011_0000     => output = format!("{}: AMOAND.D", output),
+                0b010_0000     => output = format!("{}: AMOOR.D", output),
+                0b100_0000     => output = format!("{}: AMOMIN.D", output),
+                0b101_0000     => output = format!("{}: AMOMAX.D", output),
+                0b110_0000     => output = format!("{}: AMOMINU.D", output),
+                0b111_0000     => output = format!("{}: AMOMAXU.D", output),
+                _           => return format!("{}: unknown", output),
+            },
+                
             _           => return format!("{}: unknown", output),
         }
         _           => return format!("{}: unknown", output),

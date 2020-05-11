@@ -85,3 +85,23 @@ add_test!(rv64um_p_rem);
 add_test!(rv64um_p_remu);
 add_test!(rv64um_p_remw);
 add_test!(rv64um_p_remuw);
+
+//RV64 user-level, atomic instructions
+add_test!(rv64ua_p_amoadd_w);
+add_test!(rv64ua_p_amoswap_w);
+add_test!(rv64ua_p_amoxor_w);
+add_test!(rv64ua_p_amoand_w);
+add_test!(rv64ua_p_amoor_w);
+add_test!(rv64ua_p_amomin_w);
+add_test!(rv64ua_p_amominu_w);
+add_test!(rv64ua_p_amomax_w);
+add_test!(rv64ua_p_amomaxu_w);
+add_test!(rv64ua_p_amoadd_d);
+add_test!(rv64ua_p_amoswap_d);
+add_test!(rv64ua_p_amoxor_d);
+add_test!(rv64ua_p_amoand_d);
+add_test!(rv64ua_p_amoor_d);
+add_test!(rv64ua_p_amomin_d);
+add_test!(rv64ua_p_amominu_d);
+add_test!(rv64ua_p_amomax_d);
+add_test!(rv64ua_p_amomaxu_d);
