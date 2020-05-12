@@ -1,39 +1,23 @@
 use crate::emulator::bus::*;
 
-pub const UART_SIZE:    usize  = UART0_TOP - UART0_BASE;
+pub const UART_SIZE:    usize   = UART0_TOP - UART0_BASE;
+pub const RXFIFO_SIZE:  usize   = 8;
 
-pub const TXFIFO_BASE:  usize   = 0x0000;
-pub const TXFIFO_TOP:   usize   = 0x0003;
-pub const TXFIFO_SIZE:  usize   = 0x0010;
+// Write mode
+pub const THR: usize    = 0b000;    // Transmit Holding Register
+pub const IER: usize    = 0b001;    // Interrupt Enable Register
+pub const FCR: usize    = 0b010;    // FIFO Control Register
+pub const LCR: usize    = 0b011;    // Line Control Register
+pub const MCR: usize    = 0b100;    // Modem Control Register
 
-pub const RXFIFO_BASE:  usize   = 0x0004;
-pub const RXFIFO_TOP:   usize   = 0x0007;
-pub const RXFIFO_SIZE:  usize   = 0x0010;
+// Read mode
+pub const RHR: usize    = 0b000;    // Receive Holding Register
+pub const ISR: usize    = 0b010;    // Interrupt Status Register
+pub const LSR: usize    = 0b101;    // Line Status Register
+pub const MSR: usize    = 0b110;    // Modem Status Register
 
-pub const TXCTRL_BASE:  usize   = 0x0008;
-pub const TXCTRL_TOP:   usize   = 0x0009;
-
-pub const TXMARK_BASE:  usize   = 0x000A;
-pub const TXMARK_TOP:   usize   = 0x000B;
-
-pub const RXCTRL_BASE:  usize   = 0x000C;
-pub const RXCTRL_TOP:   usize   = 0x000D;
-
-pub const RXMARK_BASE:  usize   = 0x000E;
-pub const RXMARK_TOP:   usize   = 0x000F;
-
-pub const IE_BASE:      usize   = 0x0010;
-pub const IE_TOP:       usize   = 0x0013;
-
-pub const IP_BASE:      usize   = 0x0014;
-pub const IP_TOP:       usize   = 0x0017;
-
-pub const DIV_BASE:     usize   = 0x0018;
-pub const DIV_TOP:      usize   = 0x0019;
-
-pub const MAX_BASE:     usize   = 0x0020;
-pub const MAX_TOP:      usize   = 0x0021;
-
+// Read/Write
+pub const SPR: usize    = 0b111;    // Scatchpad Register
 
 pub struct Uart {
     uart: Vec<u8>,
@@ -42,8 +26,11 @@ pub struct Uart {
 
 impl Uart {
     pub fn new() -> Self {
+        let mut uart = vec![0; UART_SIZE];
+        uart[LSR]   |= 1 << 5;
+
         Uart {
-            uart:   vec![0; UART_SIZE],
+            uart:   uart,
             rxfifo: vec![0; RXFIFO_SIZE],
         }
     }
@@ -65,47 +52,33 @@ impl Uart {
 
     pub fn write8(&mut self, addr: usize, data: u8) {
         match addr {
-            TXFIFO_BASE ... TXFIFO_TOP  => {
+            THR => {
                 print!("{}", data as char);
                 // ToDo: update irq
             },
-            IE_BASE ... IE_TOP          => {
-                self.uart[addr] = data;
-                // ToDo: update irq
-            },
-            TXCTRL_BASE ... TXCTRL_TOP  |
-            TXMARK_BASE ... TXMARK_TOP  |
-            RXCTRL_BASE ... RXCTRL_TOP  |
-            RXMARK_BASE ... RXMARK_TOP  |
-            IP_BASE ... IP_TOP          |
-            DIV_BASE ... DIV_TOP        |
-            MAX_BASE ... MAX_TOP        => self.uart[addr] = data,
-            _                           => unimplemented!(),
+            IER |
+            FCR |
+            LCR |
+            MCR |
+            SPR => self.uart[addr] = data,
+            _   => unimplemented!(),
         }
     }
 
     pub fn read8(&mut self, addr: usize) -> u8 {
         match addr {
-            TXFIFO_BASE ... TXFIFO_TOP  => 0,
-            RXFIFO_BASE ... RXFIFO_TOP  => {
+            RHR => {
                 let r = self.rxfifo.remove(0);
                 self.rxfifo.push(0);
                 // DoDo: update irq
 
                 return r;
             },
-            IE_BASE ... IE_TOP          => {
-                // ToDo: update irq
-                return self.uart[addr];
-            },
-            TXCTRL_BASE ... TXCTRL_TOP  |
-            TXMARK_BASE ... TXMARK_TOP  |
-            RXCTRL_BASE ... RXCTRL_TOP  |
-            RXMARK_BASE ... RXMARK_TOP  |
-            IP_BASE ... IP_TOP          |
-            DIV_BASE ... DIV_TOP        |
-            MAX_BASE ... MAX_TOP        => self.uart[addr],
-            _                           => unimplemented!(),
+            ISR |
+            LSR |
+            MSR |
+            SPR => self.uart[addr],
+            _   => unimplemented!(),
         }
     }
     

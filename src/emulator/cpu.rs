@@ -48,6 +48,7 @@ pub enum Registers {
     T4,     // x29: temporary register 4
     T5,     // x30: temporary register 5
     T6,     // x31: temporary register 6
+    PC,     // Program Counter
 }
 
 pub fn reg_name(index: u8) -> String {
@@ -178,7 +179,18 @@ impl Cpu {
             if self.debug { println!("{}", inspect_instruciton(self.instruction)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
             if self.step { stdin().read_line(&mut input); }
-            if self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1 { return; }
+            match self.watchpoint.0 {
+                Registers::PC   => {
+                    if self.pc == self.watchpoint.1 as usize {
+                        return;
+                    }
+                },
+                _               => {
+                    if self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1 {
+                        return;
+                    }
+                },
+            }
 
             match self.execute() {
                 Ok(_)           => {},
