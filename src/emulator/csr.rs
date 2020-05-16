@@ -306,9 +306,13 @@ pub struct Csr {
 
 impl Csr {
     pub fn new() -> Self {
+        let mut csr = [0; CSR_SIZE];
+
+        csr[SSTATUS as usize] |= (0x2 << 34) | (0x2 << 32);     // SXL and UXL is 0x2 (XLEN = 64bit)
+
         Csr {
-            csr: [0; CSR_SIZE],   
-            priv_level: PrivLevel::MACHINE
+            csr: csr,   
+            priv_level: PrivLevel::MACHINE,
         }
     }
     

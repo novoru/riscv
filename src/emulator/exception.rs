@@ -43,6 +43,7 @@ impl Exception {
     }
 
     pub fn take_trap(&self, cpu: &mut Cpu) {
+        println!("take trap: {:?}", self);
         let cur_pc = cpu.pc as u64;
         let prev_level  = cpu.csr.priv_level;
 
