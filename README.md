@@ -58,7 +58,7 @@ Emulators
 - [riscv/riscv-isa-sim ](https://github.com/riscv/riscv-isa-sim)
 - [d0iasm/rvemu](https://github.com/d0iasm/rvemu)
 - [msyksphinz-self/swimmer_rust](https://github.com/msyksphinz-self/swimmer_rust)
-- [m takahirox/riscv-rust](https://github.com/takahirox/riscv-rust)
+- [takahirox/riscv-rust](https://github.com/takahirox/riscv-rust)
 
 Tests
 - [riscv/riscv-tests](https://github.com/riscv/riscv-tests)
