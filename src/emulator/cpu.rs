@@ -96,7 +96,7 @@ pub struct XRegisters {
 impl fmt::Display for XRegisters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, reg) in self.register.into_iter().enumerate() {
-            write!(f, "  x{:2}({})\t= 0x{:016x}\n", i, reg_name(i as u8), reg)?;
+            write!(f, "  x{:2}({})\t= 0x{:16x}\n", i, reg_name(i as u8), reg)?;
         }
         write!(f, "")
     }
@@ -176,20 +176,23 @@ impl Cpu {
         loop {
             match self.fetch() {
                 Ok(_)           => {},
-                Err(exception)  => exception.take_trap(self),
+                Err(exception)  => {
+                    exception.take_trap(self);
+                    continue;
+                },
             }
             
-            if self.debug { println!("[INFO] pc: 0x{:08x}", self.pc); }
+            if self.debug { println!("[INFO] pc: 0x{:08x}(0x{:08x})", self.pc, self.mmu.translate_addr(self.csr, self.pc).unwrap()); }
             if self.debug { println!("{}", inspect_instruciton(self.instruction)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
             if self.step { stdin().read_line(&mut input); }
 
             match self.watchpoint.0 {
                 Registers::PC   => {
-                    if self.pc == self.watchpoint.1 as usize {
+                    if self.mmu.translate_addr(self.csr, self.pc).unwrap() as usize == self.watchpoint.1 as usize {
                         match self.watchpoint.2 {
                             WatchExec::EXIT => { return; },
-                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input); self.step = false; self.debug = true; },
+                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input); self.step = true; self.debug = true; },
                         }
                     }
                 },
@@ -197,7 +200,7 @@ impl Cpu {
                     if self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1 {
                         match self.watchpoint.2 {
                             WatchExec::EXIT => { return; },
-                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input); self.step = false;  self.debug = true; },
+                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input); self.step = true;  self.debug = true; },
                         }
                     }
                 },
@@ -205,7 +208,10 @@ impl Cpu {
 
             match self.execute() {
                 Ok(_)           => {},
-                Err(exception)  => exception.take_trap(self),
+                Err(exception)  => {
+                    exception.take_trap(self);
+                    continue;
+                },
             }
 
             self.pc += 4;
@@ -214,7 +220,7 @@ impl Cpu {
     }
 
     pub fn fetch(&mut self) -> Result<(), Exception> {
-        self.instruction = self.mmu.read32(self.csr, self.pc)?;
+        self.instruction = self.mmu.fetch32(self.csr, self.pc)?;
         Ok(())
     }
 
@@ -286,7 +292,7 @@ impl Cpu {
             0b011_1011  => self.decode_rv64im_rtype()?,
             // RV64A
             0b010_1111  => self.decode_rv64a()?,
-            _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -333,7 +339,7 @@ impl Cpu {
                     0b110   => self.register.write(rd, self.register.read(rs1) | self.register.read(rs2)),
                     // AND
                     0b111   => self.register.write(rd, self.register.read(rs1) & self.register.read(rs2)),
-                    _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                    _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
                 }
             },
             0b010_0000      => {
@@ -342,11 +348,11 @@ impl Cpu {
                     0b000   => self.register.write(rd, (self.register.read(rs1) as i64 - self.register.read(rs2) as i64) as u64),
                     // SRA
                     0b101   => self.register.write(rd, ((self.register.read(rs1) as i64).wrapping_shr(self.register.read(rs2) as u32)) as u64),
-                    _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                    _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
                 }
             },
             0b000_0001      => self.decode_rv32m()?,
-            _               => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _               => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -356,6 +362,7 @@ impl Cpu {
         // Decode instruction
         let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
+        let shamt: u8       = ((self.instruction >> 20) & 0x1FF) as u8;
         let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
         let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
         let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
@@ -364,7 +371,10 @@ impl Cpu {
             // ADDI
             0b000   => self.register.write(rd, ((self.register.read(rs1) as i64).wrapping_add(imm as i64)) as u64),
             // SLLI
-            0b001   => self.register.write(rd, ((self.register.read(rs1) as u64).wrapping_shl(imm as u32)) as u64),
+            0b001   => {
+                let wdata = self.register.read(rs1);
+                self.register.write(rd, (wdata.wrapping_shl(shamt as u32)) as u64);
+            },
             // SLTI
             0b010   => {
                 if (self.register.read(rs1)  as i64 ) < imm as i64 {
@@ -388,17 +398,23 @@ impl Cpu {
             0b101   => {
                 match (imm >> 6) & 0x3F {
                     // SRLI
-                    0b00_0000 => self.register.write(rd, ((self.register.read(rs1) as u64).wrapping_shr((imm & 0x1F) as u32)) as u64),
+                    0b00_0000   => {
+                        let wdata = self.register.read(rs1);
+                        self.register.write(rd, (wdata.wrapping_shr(shamt as u32)) as u64);
+                    },
                     // SRAI
-                    0b01_0000 => self.register.write(rd, ((self.register.read(rs1) as i64) >> (imm & 0x1F)) as u64),
-                    _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                    0b01_0000   => {
+                        let wdata = self.register.read(rs1) as i64;
+                        self.register.write(rd, (wdata >> shamt) as u64);
+                    },
+                    _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
                 }
             },
             // ORI
             0b110   => self.register.write(rd, (self.register.read(rs1) as i64 | (imm as i64)) as u64),
             // ANDI
             0b111   => self.register.write(rd, (self.register.read(rs1) as i64 & (imm as i64)) as u64),
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -476,7 +492,7 @@ impl Cpu {
                     self.pc -= 4;
                 }
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -536,7 +552,7 @@ impl Cpu {
                 let word: u32       = self.mmu.read32(self.csr, addr)?;
                 self.register.write(rd, word as u64);
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -576,7 +592,7 @@ impl Cpu {
                 let dword: u64  = self.register.read(rs2);
                 self.mmu.write64(self.csr, addr, dword)?;
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -585,6 +601,7 @@ impl Cpu {
     fn decode_system(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let funct12:    u16 = ((self.instruction >> 20) & 0xFFF) as u16;
+        let funct7:     u8  = ((self.instruction >> 25) & 0x3F) as u8;
         let funct3:     u8  = ((self.instruction >> 12) & 0x7) as u8;
 
         match funct3 {
@@ -597,17 +614,17 @@ impl Cpu {
                             PrivLevel::USER         => return Err(Exception::EnvCallUmode),
                             PrivLevel::SUPERVISOR   => return Err(Exception::EnvCallSmode),
                             PrivLevel::MACHINE      => return Err(Exception::EnvCallMmode),
-                            _                       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                            _                       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
                         }
                     },
                     // EBREAK
-                    0b0000_0000_0001    => unimplemented!(),
+                    0b0000_0000_0001    => return Err(Exception::Breakpoint),
                     // URET
                     0b0000_0000_0010    => unimplemented!(),
                     // SRET
                     0b0001_0000_0010    => {
-                        let spp = self.csr.read_bits(SSTATUS, 11..12+1);    // Get SPP bits
-                        let spie = self.csr.read_bit(SSTATUS, 7);           // Get SPIE bit
+                        let spp = self.csr.read_bit(SSTATUS, 8);    // Get SPP bits
+                        let spie = self.csr.read_bit(SSTATUS, 5);   // Get SPIE bit
                         self.csr.write_bit(SSTATUS, 3, spie);          // Set SIE bit
                         self.csr.set_priv_level(spp as u8);
                         self.csr.write_bit(SSTATUS, 7, true);
@@ -619,6 +636,7 @@ impl Cpu {
                         }
 
                         self.pc -= 4;
+
                     },
                     // MRET
                     0b0011_0000_0010    => {
@@ -636,7 +654,11 @@ impl Cpu {
 
                         self.pc -= 4;
                     },
-                    _                   => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                    _   => match funct7 {
+                            // SFENCE.VMA
+                            0b000_1001  =>  (),     // treat as nop
+                            _           =>  panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
+                    }
                 }
             },
             // Zicsr
@@ -700,7 +722,7 @@ impl Cpu {
                 data &= !(uimm) as u64;
                 self.csr.write(csr, data);
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -726,10 +748,10 @@ impl Cpu {
                     0b000_0000  => self.register.write(rd, ((self.register.read(rs1) as u32).wrapping_shr(imm as u32))  as i32 as u64),
                     // SRAIW
                     0b010_0000  => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr(imm as u32)) as u64),
-                    _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                    _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
                 }
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -750,14 +772,14 @@ impl Cpu {
                 0b001       => self.register.write(rd, (self.register.read(rs1) as i32).wrapping_shl(self.register.read(rs2) as u32) as u64),
                 // SRLW
                 0b101       => self.register.write(rd, (self.register.read(rs1) as u32).wrapping_shr(self.register.read(rs2) as u32) as i32 as u64),
-                _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },
             0b010_0000  => match funct3 {
                 // SUBW
                 0b000       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_sub(self.register.read(rs2) as i32)) as i64 as u64),
                 // SRAW
                 0b101       => self.register.write(rd, ((self.register.read(rs1) as i32).wrapping_shr((self.register.read(rs2) & 0x1F) as u32)) as u64),
-                _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },
             // RV64M
             0b000_0001  => match funct3 {
@@ -812,9 +834,9 @@ impl Cpu {
                         self.register.write(rd, result);
                     }
                 },
-                _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },
-            _           => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _           => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -894,7 +916,7 @@ impl Cpu {
                     self.register.write(rd, result);
                 }
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -986,7 +1008,7 @@ impl Cpu {
                     self.register.write(rd, data);
                     self.mmu.write64(self.csr, addr, std::cmp::max(data, wdata))?;
                 },
-                _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },
             // RV64A
             0b011   => match funct7 & 0x7C {
@@ -1067,9 +1089,9 @@ impl Cpu {
                     self.register.write(rd, data);
                     self.mmu.write64(self.csr, addr, std::cmp::max(data, wdata))?;
                 },
-                _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+                _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },
-            _       => panic!("[ERROR] unknown instruciton: 0x{:08x}", self.instruction),
+            _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
 
         Ok(())
@@ -1199,6 +1221,7 @@ fn inspect_instruciton(instruction: Instruction) -> String {
                     0b000_0000          => output = format!("{}: URET", output),
                     0b000_1000          => output = format!("{}: SRET", output),
                     0b001_1000          => output = format!("{}: MRET", output),
+                    0b000_1001          => output = format!("{}: SFENCE.VMA", output),
                     _                   => return format!("{}: unknown", output),
                 },
             },

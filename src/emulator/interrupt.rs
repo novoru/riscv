@@ -18,15 +18,15 @@ pub enum Interrupt {
 impl Interrupt {
     fn exc_code(&self) -> u8 {
         match self {
-            Interrupt::UserSoftwareIrq          => 0x00,
-            Interrupt::SupervisorSoftwareIrq    => 0x01,
-            Interrupt::MachineSoftwareIrq       => 0x03,
-            Interrupt::UserTimerIrq             => 0x04,
-            Interrupt::SupervisorTimerIrq       => 0x05,
-            Interrupt::MachineTimerIrq          => 0x07,
-            Interrupt::UserExtIrq(_irq)         => 0x08,
-            Interrupt::SupervisorExtIrq(_irq)   => 0x09,
-            Interrupt::MachineExtIrq(_irq)      => 0x0B,
+            Interrupt::UserSoftwareIrq          => 0,
+            Interrupt::SupervisorSoftwareIrq    => 1,
+            Interrupt::MachineSoftwareIrq       => 3,
+            Interrupt::UserTimerIrq             => 4,
+            Interrupt::SupervisorTimerIrq       => 5,
+            Interrupt::MachineTimerIrq          => 7,
+            Interrupt::UserExtIrq(_irq)         => 8,
+            Interrupt::SupervisorExtIrq(_irq)   => 9,
+            Interrupt::MachineExtIrq(_irq)      => 11,
         }
     }
 

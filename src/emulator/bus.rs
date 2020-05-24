@@ -106,7 +106,7 @@ impl Bus {
             VIRTIO_BASE ... VIRTIO_TOP      => unimplemented!(),
             // DRAM
             DRAM_BASE ... DRAM_TOP          => self.dram.read8(paddr - DRAM_BASE),
-            _                               => panic!("0x{:016x}", paddr),
+            _                               => panic!("invalid paddr: 0x{:016x}", paddr),
         }
     }
     

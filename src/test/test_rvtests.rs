@@ -8,7 +8,6 @@ macro_rules! add_test {
         fn $str() -> io::Result<()> {
             let mut filename = "./src/test/rvtests/".to_string();
             filename.push_str(stringify!($str));
-            println!("{}", filename);
 
             let mut cpu = Cpu::new();
             cpu.load(&filename);
@@ -107,9 +106,27 @@ add_test!(rv64ua_p_amomax_d);
 add_test!(rv64ua_p_amomaxu_d);
 
 // RV64 supervisor-level, integer and vector
+/*
 add_test!(rv64si_p_csr);
 //add_test!(rv64si_p_dirty);
-add_test!(rv64si_p_scall);
-
+//add_test!(rv64si_p_icache_alias);
+//add_test!(rv64si_p_ma_fetch);
+//add_test!(rv64si_p_sbreak);
+//add_test!(rv64si_p_scall);
+//add_test!(rv64si_p_wfi);
+*/
 // RV64 user-level, integer only, virtual memory is enabled
-//add_test!(rv64ui_v_add);
+/*
+add_test!(rv64ui_v_add);
+add_test!(rv64ui_v_addi);
+add_test!(rv64ui_v_addiw);
+add_test!(rv64ui_v_addw);
+add_test!(rv64ui_v_and);
+add_test!(rv64ui_v_andi);
+add_test!(rv64ui_v_auipc);
+add_test!(rv64ui_v_beq);
+add_test!(rv64ui_v_bge);
+add_test!(rv64ui_v_bgeu);
+add_test!(rv64ui_v_blt);
+add_test!(rv64ui_v_bltu);
+*/

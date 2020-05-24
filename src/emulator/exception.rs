@@ -25,103 +25,77 @@ pub enum Exception {
 impl Exception {
     fn exc_code(&self) -> u8 {
         match self {
-            Exception::InstAddrMisalign     =>  1,
-            Exception::InstAccessFault      =>  2,
-            Exception::IllegalInst          =>  3,
-            Exception::Breakpoint	        =>  4,
-            Exception::LoadAddrMislign      =>  5,
-            Exception::LoadAccessFault	    =>  6,
-            Exception::StoreAddrMisalign    =>  7,
-            Exception::StoreAccessFault     =>  8,
-            Exception::EnvCallUmode         =>  9,
-            Exception::EnvCallSmode         =>  11,
-            Exception::EnvCallMmode         =>  12,
-            Exception::InstPageFault	    =>  13,
-            Exception::LoadPageFault	    =>  14,
+            Exception::InstAddrMisalign     =>  0,
+            Exception::InstAccessFault      =>  1,
+            Exception::IllegalInst          =>  2,
+            Exception::Breakpoint	        =>  3,
+            Exception::LoadAddrMislign      =>  4,
+            Exception::LoadAccessFault	    =>  5,
+            Exception::StoreAddrMisalign    =>  6,
+            Exception::StoreAccessFault     =>  7,
+            Exception::EnvCallUmode         =>  8,
+            Exception::EnvCallSmode         =>  9,
+            Exception::EnvCallMmode         =>  11,
+            Exception::InstPageFault	    =>  12,
+            Exception::LoadPageFault	    =>  13,
             Exception::StorePageFault	    =>  15,
         }
     }
 
     pub fn take_trap(&self, cpu: &mut Cpu) {
-        println!("take trap: {:?}", self);
-        let cur_pc = cpu.pc as u64;
-        let prev_level  = cpu.csr.priv_level;
+        if cpu.debug { eprintln!("[DEBUG] {:?}-{:?} take trap : {:?} {:?}", file!(), line!(), self, cpu.csr.priv_level);}
+        let cur_priv_level = cpu.csr.priv_level;
+        let cur_pc = cpu.pc; 
+        let cause = self.exc_code()  as u64;
 
-        let medeleg = cpu.csr.read(MEDELEG);
-        let sedeleg = cpu.csr.read(SEDELEG);
+        let mdeleg = cpu.csr.read(MEDELEG);
+        let sdeleg = cpu.csr.read(SEDELEG);
 
-        let pos = self.exc_code() & 0xFF;
+        let pos = cause & 0xFFFF;
 
-        if ((medeleg >> pos) & 1) == 0 {
-            cpu.csr.priv_level = PrivLevel::MACHINE;
-        }
-        else {
-            if (sedeleg >> pos & 0b1) == 0 {
-                cpu.csr.priv_level = PrivLevel::SUPERVISOR;
+        let new_priv_level = match ((mdeleg >> pos) & 1) == 0 {
+            true    => PrivLevel::MACHINE,
+            false   => match ((sdeleg >> pos) & 1) == 0 {
+                true    => PrivLevel::SUPERVISOR,
+                false   => PrivLevel::USER,
             }
-            else {
-                cpu.csr.priv_level = PrivLevel::USER;
-            }
-        }
+        };
 
-        match cpu.csr.priv_level {
+        cpu.csr.priv_level = new_priv_level;
+
+         match cpu.csr.priv_level {
             PrivLevel::MACHINE      => {
-                cpu.csr.write(MEPC, cur_pc);
+                cpu.csr.write(MEPC, cur_pc as u64);
+                cpu.csr.write(MCAUSE, cause as u64);
+                cpu.csr.write(MTVAL, cur_pc as u64);    // ToDo: branch based on exception code
                 cpu.pc = cpu.csr.read(MTVEC) as usize;
-                cpu.pc -= 4;
-                cpu.csr.write(MCAUSE, self.exc_code() as u64);
-                match self {
-                    Exception::InstAddrMisalign     |
-                    Exception::LoadAddrMislign      |
-                    Exception::StoreAddrMisalign    |
-                    Exception::InstPageFault        |
-                    Exception::LoadPageFault        |
-                    Exception::StorePageFault       => cpu.csr.write(MTVAL, cur_pc),
-                    _                               => cpu.csr.write(MTVAL, 0),
-                }
-                let mstatus = cpu.csr.read_bit(MSTATUS, 3);
-                cpu.csr.write_bit(MSTATUS, 7, mstatus);
-                cpu.csr.write_bit(MSTATUS, 3, false);
-                cpu.csr.write_bits(MSTATUS, 11..13, 0b00);
+
+                let status = cpu.csr.read(MSTATUS);
+				let mie = (status >> 3) & 1;
+                let new_status = (status & !0x1888) | (mie << 7) | ((cur_priv_level as u64) << 11) as u64;
+                cpu.csr.write(MSTATUS, new_status);
+                
             },
             PrivLevel::SUPERVISOR   => {
-                cpu.csr.write(SEPC, cur_pc);
+                cpu.csr.write(SEPC, cur_pc as u64);
+                cpu.csr.write(SCAUSE, cause as u64);
+                cpu.csr.write(STVAL, cur_pc as u64);    // ToDo: branch based on exception code
                 cpu.pc = cpu.csr.read(STVEC) as usize;
-                cpu.pc -= 4;
-                cpu.csr.write(SCAUSE, self.exc_code() as u64);
-                match self {
-                    Exception::InstAddrMisalign     |
-                    Exception::LoadAddrMislign      |
-                    Exception::StoreAddrMisalign    |
-                    Exception::InstPageFault        |
-                    Exception::LoadPageFault        |
-                    Exception::StorePageFault       => cpu.csr.write(STVAL, cur_pc),
-                    _                               => cpu.csr.write(STVAL, 0),
-                }
-                let sstatus = cpu.csr.read_bit(SSTATUS, 1);
-                cpu.csr.write_bit(SSTATUS, 5, sstatus);
-                cpu.csr.write_bit(SSTATUS, 1, false);
-                match prev_level {
-                    PrivLevel::USER => cpu.csr.write_bit(SSTATUS, 8, false),
-                    _               => cpu.csr.write_bit(SSTATUS, 8, true),
-                }
+                
+                let status = cpu.csr.read(SSTATUS);
+				let sie = (status >> 1) & 1;
+                let new_status = (status & !0x122) | (sie << 5) | (((cur_priv_level as u64) & 1) << 8) as u64;
+                cpu.csr.write(SSTATUS, new_status);
             },
             PrivLevel::USER         => {
-                cpu.csr.write(UEPC, cur_pc);
+                cpu.csr.write(UEPC, cur_pc as u64);
+                cpu.csr.write(UCAUSE, cause as u64);
+                cpu.csr.write(UTVAL, cur_pc as u64);    // ToDo: branch based on exception code
                 cpu.pc = cpu.csr.read(UTVEC) as usize;
-                cpu.pc -= 4;
-                cpu.csr.write(UCAUSE, self.exc_code() as u64);
-                match self {
-                    Exception::InstAddrMisalign     |
-                    Exception::LoadAddrMislign      |
-                    Exception::StoreAddrMisalign    |
-                    Exception::InstPageFault        |
-                    Exception::LoadPageFault        |
-                    Exception::StorePageFault       => cpu.csr.write(UTVAL, cur_pc),
-                    _                               => cpu.csr.write(UTVAL, 0),
-                }
+
+                unimplemented!();
             },
-            _                       => unimplemented!(),
+            PrivLevel::RESERVED     => panic!(),
         }
     }
 }

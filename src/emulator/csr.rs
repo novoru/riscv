@@ -290,7 +290,7 @@ pub const DSCRATCH0: u16        = 0x7B2;    // Debug scratch register 0.
 pub const DSCRATCH1: u16        = 0x7B3;    // Debug scratch register 1.
 
 // Privilege levels
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum PrivLevel {
     USER        = 0b00,     // User/Application
     SUPERVISOR  = 0b01,     // Supervisor
@@ -326,29 +326,64 @@ impl Csr {
     }
 
     pub fn write_bit(&mut self, csr: u16, digit: u8, bit: bool) {
+        let addr = match csr {
+            FFLAGS  |
+            FRM     => FCSR,
+            SSTATUS => MSTATUS,
+            SIE     => MIE,
+            SIP     => MIP,
+            _       => csr,
+        };
+        
         if bit {
-            self.csr[csr as usize] |= 1 << digit;
+            self.csr[addr as usize] |= 1 << digit;
         }
         else {
-            self.csr[csr as usize] &= !(1 << digit);
+            self.csr[addr as usize] &= !(1 << digit);
         }
     }
 
     pub fn read_bit(&self, csr: u16, digit: u8) -> bool {
-        ((self.read(csr) >> digit) & 0b1) == 1
+        let addr = match csr {
+            FFLAGS  |
+            FRM     => FCSR,
+            SSTATUS => MSTATUS,
+            SIE     => MIE,
+            SIP     => MIP,
+            _       => csr,
+        };
+        ((self.read(addr) >> digit) & 0b1) == 1
     }
 
     pub fn write_bits(&mut self, csr: u16, digits: std::ops::Range<u8>, bits: u64) {
+        let addr = match csr {
+            FFLAGS  |
+            FRM     => FCSR,
+            SSTATUS => MSTATUS,
+            SIE     => MIE,
+            SIP     => MIP,
+            _       => csr,
+        };
+
         for (i, digit) in digits.enumerate() {
-            self.write_bit(csr, digit as u8, ((bits >> i) & 0b1) == 1);
+            self.write_bit(addr, digit as u8, ((bits >> i) & 0b1) == 1);
         }
     }
 
     pub fn read_bits(&self, csr: u16, digits: std::ops::Range<u8>) -> u64 {
+        let addr = match csr {
+            FFLAGS  |
+            FRM     => FCSR,
+            SSTATUS => MSTATUS,
+            SIE     => MIE,
+            SIP     => MIP,
+            _       => csr,
+        };
+
         let mut bits = 0;
 
         for (i, digit) in digits.enumerate() {
-            let bit = self.read_bit(csr, digit);
+            let bit = self.read_bit(addr, digit);
             bits |= (bit as u64) <<i;
         }
 
@@ -356,15 +391,39 @@ impl Csr {
     }
 
     pub fn write(&mut self, csr: u16, data: u64) {
-        match (csr & 0xC00) >> 10 {     // CSR Address [11:10]
-            0b11    => {},              // Read only
-            _       => self.csr[csr as usize] = data,
+        match csr {
+            FFLAGS  => {
+				self.csr[FCSR as usize] &= !0x1f;
+				self.csr[FCSR as usize] |= data & 0x1f;
+            },
+            FRM     =>{
+				self.csr[FRM as usize] &= !0xe0;
+				self.csr[FRM as usize] |= (data << 5) & 0xe0;
+			},
+            SSTATUS =>{
+				self.csr[MSTATUS as usize] &= !0x80000003000de162;
+				self.csr[MSTATUS as usize] |= data & 0x80000003000de162;
+			},
+			SIE     => {
+				self.csr[MIE as usize] &= !0x222;
+				self.csr[MIE as usize] |= data & 0x222;
+			},
+			SIP     => {
+				self.csr[MIP as usize] &= !0x222;
+				self.csr[MIP as usize] |= data & 0x222;
+            },
+            _   => self.csr[csr as usize] = data,
         }
     }
 
     pub fn read(&self, csr: u16) -> u64 {
         match csr {
-            _       => self.csr[csr as usize],
+            FFLAGS  =>  self.csr[FCSR as usize] & 0x1F,
+            FRM     => (self.csr[FRM as usize] >> 5) & 0x7,
+            SSTATUS =>  self.csr[MSTATUS as usize] & 0x80000003000DE162,
+			SIE     =>  self.csr[MIE as usize] & 0x222,
+			SIP     =>  self.csr[MIP as usize] & 0x222,
+            _       =>  self.csr[csr as usize],
         }
     }
 }

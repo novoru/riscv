@@ -39,11 +39,12 @@ make test
 ```
 ## 🛠 Features
 - [x] RV32/RV64G
-    - [x] RV32I/RV64I (without fence/ebreak)
+    - [x] RV32I/RV64I (without fence)
     - [x] RV32M/RV64M
+    - [x] RV32A/RV64A
     - [x] RV32/RV64 *Zicsr*
 - [x] CSRs
-- [ ] Virtual Memory
+- [x] Virtual Memory (Sv39 only)
 - [ ] CLINT
 - [ ] PLIC
 - [ ] UART
@@ -56,6 +57,8 @@ Documents
 Emulators
 - [riscv/riscv-isa-sim ](https://github.com/riscv/riscv-isa-sim)
 - [d0iasm/rvemu](https://github.com/d0iasm/rvemu)
+- [msyksphinz-self/swimmer_rust](https://github.com/msyksphinz-self/swimmer_rust)
+- [m takahirox/riscv-rust](https://github.com/takahirox/riscv-rust)
 
 Tests
 - [riscv/riscv-tests](https://github.com/riscv/riscv-tests)
