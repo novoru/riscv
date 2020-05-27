@@ -16,7 +16,7 @@ enum ACCESS {
 
 // Memory Management Unit
 pub struct Mmu {
-    pub bus: Bus,
+    bus: Bus,
     access: ACCESS,
 }
 

@@ -114,6 +114,7 @@ fn bench_sd(b: &mut Bencher) {
     });
 }
 
+/*
 #[bench]
 fn bench_dram_read8(b: &mut Bencher) {
     let cpu = Cpu::new();
@@ -153,6 +154,7 @@ fn bench_bus_read64(b: &mut Bencher) {
         cpu.mmu.bus.read64(paddr);
     });
 }
+*/
 
 #[bench]
 fn bench_mmu_read8(b: &mut Bencher) {
@@ -174,6 +176,7 @@ fn bench_mmu_read64(b: &mut Bencher) {
     });
 }
 
+/*
 #[bench]
 fn bench_dram_write8(b: &mut Bencher) {
     let mut cpu = Cpu::new();
@@ -213,6 +216,7 @@ fn bench_bus_write64(b: &mut Bencher) {
         cpu.mmu.bus.write64(paddr, 0xFFFF_FFFF_FFFF_FFFF);
     });
 }
+*/
 
 #[bench]
 fn bench_mmu_write8(b: &mut Bencher) {

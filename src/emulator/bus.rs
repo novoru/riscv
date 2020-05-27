@@ -43,7 +43,7 @@ pub const DRAM_TOP:     usize = 0x87FF_FFFF;
 
 
 pub struct Bus {
-    pub dram:   Dram,
+    dram:   Dram,
     clint:  Clint,
     plic:   Plic,
     uart0:  Uart,
