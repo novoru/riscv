@@ -43,7 +43,7 @@ pub const DRAM_TOP:     usize = 0x87FF_FFFF;
 
 
 pub struct Bus {
-    dram:   Dram,
+    pub dram:   Dram,
     clint:  Clint,
     plic:   Plic,
     uart0:  Uart,
@@ -62,63 +62,144 @@ impl Bus {
     pub fn write8(&mut self, paddr: usize, data: u8) {
         match paddr {
             // boot ROM
-            BOOT_ROM_BASE ... BOOT_ROM_TOP  => unimplemented!(),
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
             // CLINT
-            CLINT_BASE ... CLINT_TOP        => self.clint.write8(paddr - CLINT_BASE, data),
+            CLINT_BASE ..= CLINT_TOP        => self.clint.write8(paddr - CLINT_BASE, data),
             // PLIC
-            PLIC_BASE ... PLIC_TOP          => self.plic.write8(paddr - PLIC_BASE, data),
+            PLIC_BASE ..= PLIC_TOP          => self.plic.write8(paddr - PLIC_BASE, data),
             // UART0
-            UART0_BASE ... UART0_TOP        => self.uart0.write8(paddr - UART0_BASE, data),
+            UART0_BASE ..= UART0_TOP        => self.uart0.write8(paddr - UART0_BASE, data),
             // VIRTIO
-            VIRTIO_BASE ... VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
             // DRAM
-            DRAM_BASE ... DRAM_TOP          => self.dram.write8(paddr - DRAM_BASE, data),
+            DRAM_BASE ..= DRAM_TOP          => self.dram.write8(paddr - DRAM_BASE, data),
             _                               => unimplemented!(),
         }
     }
 
     pub fn write16(&mut self, paddr: usize, data: u16) {
-        self.write8(paddr, (data & 0xFF) as u8);
-        self.write8(paddr + 1, ((data >> 8) & 0xFF) as u8);
+        match paddr {
+            // boot ROM
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
+            // CLINT
+            CLINT_BASE ..= CLINT_TOP        => self.clint.write16(paddr - CLINT_BASE, data),
+            // PLIC
+            PLIC_BASE ..= PLIC_TOP          => self.plic.write16(paddr - PLIC_BASE, data),
+            // UART0
+            UART0_BASE ..= UART0_TOP        => self.uart0.write16(paddr - UART0_BASE, data),
+            // VIRTIO
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            // DRAM
+            DRAM_BASE ..= DRAM_TOP          => self.dram.write16(paddr - DRAM_BASE, data),
+            _                               => unimplemented!(),
+        }
     }
     
     pub fn write32(&mut self, paddr: usize, data: u32) {
-        self.write16(paddr, (data & 0xFFFF) as u16);
-        self.write16(paddr + 2, ((data >> 16) & 0xFFFF) as u16);
+        match paddr {
+            // boot ROM
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
+            // CLINT
+            CLINT_BASE ..= CLINT_TOP        => self.clint.write32(paddr - CLINT_BASE, data),
+            // PLIC
+            PLIC_BASE ..= PLIC_TOP          => self.plic.write32(paddr - PLIC_BASE, data),
+            // UART0
+            UART0_BASE ..= UART0_TOP        => self.uart0.write32(paddr - UART0_BASE, data),
+            // VIRTIO
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            // DRAM
+            DRAM_BASE ..= DRAM_TOP          => self.dram.write32(paddr - DRAM_BASE, data),
+            _                               => unimplemented!(),
+        }
     }
     
     pub fn write64(&mut self, paddr: usize, data: u64) {
-        self.write32(paddr, (data & 0xFFFF_FFFF) as u32);
-        self.write32(paddr + 4, ((data >> 32) & 0xFFFF_FFFF) as u32);
+        match paddr {
+            // boot ROM
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
+            // CLINT
+            CLINT_BASE ..= CLINT_TOP        => self.clint.write64(paddr - CLINT_BASE, data),
+            // PLIC
+            PLIC_BASE ..= PLIC_TOP          => self.plic.write64(paddr - PLIC_BASE, data),
+            // UART0
+            UART0_BASE ..= UART0_TOP        => self.uart0.write64(paddr - UART0_BASE, data),
+            // VIRTIO
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            // DRAM
+            DRAM_BASE ..= DRAM_TOP          => self.dram.write64(paddr - DRAM_BASE, data),
+            _                               => unimplemented!(),
+        }
     }
 
     pub fn read8(&mut self, paddr: usize) -> u8 {
         match paddr {
             // boot ROM
-            BOOT_ROM_BASE ... BOOT_ROM_TOP  => unimplemented!(),
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
             // CLINT
-            CLINT_BASE ... CLINT_TOP        => self.clint.read8(paddr - CLINT_BASE),
+            CLINT_BASE ..= CLINT_TOP        => self.clint.read8(paddr - CLINT_BASE),
             // PLIC
-            PLIC_BASE ... PLIC_TOP          => self.plic.read8(paddr - PLIC_BASE),
+            PLIC_BASE ..= PLIC_TOP          => self.plic.read8(paddr - PLIC_BASE),
             // UART0
-            UART0_BASE ... UART0_TOP        => self.uart0.read8(paddr - UART0_BASE),
+            UART0_BASE ..= UART0_TOP        => self.uart0.read8(paddr - UART0_BASE),
             // VIRTIO
-            VIRTIO_BASE ... VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
             // DRAM
-            DRAM_BASE ... DRAM_TOP          => self.dram.read8(paddr - DRAM_BASE),
+            DRAM_BASE ..= DRAM_TOP          => self.dram.read8(paddr - DRAM_BASE),
             _                               => panic!("invalid paddr: 0x{:016x}", paddr),
         }
     }
     
     pub fn read16(&mut self, paddr: usize) -> u16 {
-        self.read8(paddr) as u16 | (self.read8(paddr + 1)  as u16) << 8
+        match paddr {
+            // boot ROM
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
+            // CLINT
+            CLINT_BASE ..= CLINT_TOP        => self.clint.read16(paddr - CLINT_BASE),
+            // PLIC
+            PLIC_BASE ..= PLIC_TOP          => self.plic.read16(paddr - PLIC_BASE),
+            // UART0
+            UART0_BASE ..= UART0_TOP        => self.uart0.read16(paddr - UART0_BASE),
+            // VIRTIO
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            // DRAM
+            DRAM_BASE ..= DRAM_TOP          => self.dram.read16(paddr - DRAM_BASE),
+            _                               => panic!("invalid paddr: 0x{:016x}", paddr),
+        }
     }
 
     pub fn read32(&mut self, paddr: usize) -> u32 {
-        self.read16(paddr) as u32 | (self.read16(paddr + 2)  as u32) << 16
+        match paddr {
+            // boot ROM
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
+            // CLINT
+            CLINT_BASE ..= CLINT_TOP        => self.clint.read32(paddr - CLINT_BASE),
+            // PLIC
+            PLIC_BASE ..= PLIC_TOP          => self.plic.read32(paddr - PLIC_BASE),
+            // UART0
+            UART0_BASE ..= UART0_TOP        => self.uart0.read32(paddr - UART0_BASE),
+            // VIRTIO
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            // DRAM
+            DRAM_BASE ..= DRAM_TOP          => self.dram.read32(paddr - DRAM_BASE),
+            _                               => panic!("invalid paddr: 0x{:016x}", paddr),
+        }
     }
     
     pub fn read64(&mut self, paddr: usize) -> u64 {
-        self.read32(paddr) as u64 | (self.read32(paddr + 4) as u64) << 32
+        match paddr {
+            // boot ROM
+            BOOT_ROM_BASE ..= BOOT_ROM_TOP  => unimplemented!(),
+            // CLINT
+            CLINT_BASE ..= CLINT_TOP        => self.clint.read64(paddr - CLINT_BASE),
+            // PLIC
+            PLIC_BASE ..= PLIC_TOP          => self.plic.read64(paddr - PLIC_BASE),
+            // UART0
+            UART0_BASE ..= UART0_TOP        => self.uart0.read64(paddr - UART0_BASE),
+            // VIRTIO
+            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            // DRAM
+            DRAM_BASE ..= DRAM_TOP          => self.dram.read64(paddr - DRAM_BASE),
+            _                               => panic!("invalid paddr: 0x{:016x}", paddr),
+        }
     }
 }

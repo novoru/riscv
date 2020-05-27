@@ -60,7 +60,7 @@ impl Interrupt {
             }
         }
 
-        cpu.mmu.write32(cpu.csr, CONTEXT_BASE + 0x1004, self.irq() as u32).unwrap();
+        cpu.mmu.write32(&cpu.csr, CONTEXT_BASE + 0x1004, self.irq() as u32).unwrap();
 
         match cpu.csr.priv_level {
             PrivLevel::MACHINE      => {

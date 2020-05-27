@@ -2,7 +2,7 @@ mod test;
 pub mod emulator;
 
 use structopt::StructOpt;
-use emulator::cpu::Cpu;
+use emulator::cpu::{ Cpu, Registers, WatchExec };
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -28,6 +28,7 @@ fn main() {
     cpu.debug = opt.debug;
     cpu.step = opt.step;
     cpu.load(&opt.file);
+    //cpu.watch(Registers::PC, 0x800012b0, WatchExec::STOP);
 
     cpu.run();
 }

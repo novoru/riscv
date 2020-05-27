@@ -47,9 +47,9 @@ impl Clint {
 
     pub fn write8(&mut self, addr: usize, data: u8) {
         match addr {
-            MSIP_BASE ... MSIP_TOP          => self.write_msip(addr, data),
-            MTIMECMP_BASE ... MTIMECMP_TOP  |
-            MTIME_BASE ... MTIME_TOP        => self.clint[addr] = data,
+            MSIP_BASE ..= MSIP_TOP          => self.write_msip(addr, data),
+            MTIMECMP_BASE ..= MTIMECMP_TOP  |
+            MTIME_BASE ..= MTIME_TOP        => self.clint[addr] = data,
             _                               => unimplemented!(),
         }
     }
@@ -71,9 +71,9 @@ impl Clint {
 
     pub fn read8(&self, addr: usize) -> u8 {
         match addr {
-            MSIP_BASE ... MSIP_TOP          => self.read_msip(addr),
-            MTIMECMP_BASE ... MTIMECMP_TOP  |
-            MTIME_BASE ... MTIME_TOP        => self.clint[addr],
+            MSIP_BASE ..= MSIP_TOP          => self.read_msip(addr),
+            MTIMECMP_BASE ..= MTIMECMP_TOP  |
+            MTIME_BASE ..= MTIME_TOP        => self.clint[addr],
             _                               => unimplemented!(),
         }
     }

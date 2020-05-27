@@ -41,7 +41,7 @@ make test
 - [x] RV32/RV64G
     - [x] RV32I/RV64I (without fence)
     - [x] RV32M/RV64M
-    - [x] RV32A/RV64A
+    - [x] RV32A/RV64A (without lr/sc)
     - [x] RV32/RV64 *Zicsr*
 - [x] CSRs
 - [x] Virtual Memory (Sv39 only)

@@ -95,7 +95,7 @@ pub struct XRegisters {
 
 impl fmt::Display for XRegisters {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (i, reg) in self.register.into_iter().enumerate() {
+        for (i, reg) in self.register.iter().enumerate() {
             write!(f, "  x{:2}({})\t= 0x{:16x}\n", i, reg_name(i as u8), reg)?;
         }
         write!(f, "")
@@ -162,7 +162,7 @@ impl Cpu {
         }
         
         for (i, byte) in binary.iter().enumerate() {
-            self.mmu.write8(self.csr, DRAM_BASE+i, *byte).unwrap();
+            self.mmu.write8(&self.csr, DRAM_BASE+i, *byte).unwrap();
         }
 
         len
@@ -181,18 +181,18 @@ impl Cpu {
                     continue;
                 },
             }
-            
-            if self.debug { println!("[INFO] pc: 0x{:08x}(0x{:08x})", self.pc, self.mmu.translate_addr(self.csr, self.pc).unwrap()); }
+
+            if self.debug { println!("[INFO] pc: 0x{:08x}(0x{:08x})", self.pc, self.mmu.translate_addr(&self.csr, self.pc).unwrap()); }
             if self.debug { println!("{}", inspect_instruciton(self.instruction)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
-            if self.step { stdin().read_line(&mut input); }
+            if self.step { stdin().read_line(&mut input).unwrap(); }
 
             match self.watchpoint.0 {
                 Registers::PC   => {
-                    if self.mmu.translate_addr(self.csr, self.pc).unwrap() as usize == self.watchpoint.1 as usize {
+                    if self.mmu.translate_addr(&self.csr, self.pc).unwrap() as usize == self.watchpoint.1 as usize {
                         match self.watchpoint.2 {
                             WatchExec::EXIT => { return; },
-                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input); self.step = true; self.debug = true; },
+                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input).unwrap(); self.step = true; self.debug = true; },
                         }
                     }
                 },
@@ -200,7 +200,7 @@ impl Cpu {
                     if self.register.read(self.watchpoint.0 as usize) == self.watchpoint.1 {
                         match self.watchpoint.2 {
                             WatchExec::EXIT => { return; },
-                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input); self.step = true;  self.debug = true; },
+                            WatchExec::STOP => { println!("trap"); stdin().read_line(&mut input).unwrap(); self.step = true;  self.debug = true; },
                         }
                     }
                 },
@@ -215,12 +215,11 @@ impl Cpu {
             }
 
             self.pc += 4;
-
         }
     }
 
     pub fn fetch(&mut self) -> Result<(), Exception> {
-        self.instruction = self.mmu.fetch32(self.csr, self.pc)?;
+        self.instruction = self.mmu.fetch32(&self.csr, self.pc)?;
         Ok(())
     }
 
@@ -510,46 +509,46 @@ impl Cpu {
             // LB
             0b000   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let byte: u8        = self.mmu.read8(self.csr, addr)?;
+                let byte: u8        = self.mmu.read8(&self.csr, addr)?;
                 let data: i64       = ((byte as i64 + 0b1000_0000) & 0xFF) - 0b1000_0000;   // sign extension
                 self.register.write(rd, data as u64);
             },
             // LH
             0b001   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let hword: u16      = self.mmu.read16(self.csr, addr)?;
+                let hword: u16      = self.mmu.read16(&self.csr, addr)?;
                 let data: i64       = ((hword as i64 + 0b1000_0000_0000_0000) & 0xFFFF) - 0b1000_0000_0000_0000;   // sign extension
                 self.register.write(rd, data as u64);
             },
             // LW
             0b010   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let word: u32       = self.mmu.read32(self.csr, addr)?;
+                let word: u32       = self.mmu.read32(&self.csr, addr)?;
                 let data: i64       = word as i32 as i64;   // sign extension
                 self.register.write(rd, data as u64);
             },
             // LD
             0b011   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let dword: u64       = self.mmu.read64(self.csr, addr)?;
+                let dword: u64       = self.mmu.read64(&self.csr, addr)?;
                 self.register.write(rd, dword);
             },
             // LBU
             0b100   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let byte: u8        = self.mmu.read8(self.csr, addr)?;
+                let byte: u8        = self.mmu.read8(&self.csr, addr)?;
                 self.register.write(rd, byte as u64);
             },
             // LHU
             0b101   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let hword: u16      = self.mmu.read16(self.csr, addr)?;
+                let hword: u16      = self.mmu.read16(&self.csr, addr)?;
                 self.register.write(rd, hword as u64);
             },
             // LWU
             0b110   => {
                 let addr: usize     = (self.register.read(rs1) as i64 + imm as i64) as usize;
-                let word: u32       = self.mmu.read32(self.csr, addr)?;
+                let word: u32       = self.mmu.read32(&self.csr, addr)?;
                 self.register.write(rd, word as u64);
             },
             _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
@@ -558,7 +557,7 @@ impl Cpu {
         Ok(())
     }
 
-    fn decode_store(&mut self) -> Result<(), Exception> {
+    pub fn decode_store(&mut self) -> Result<(), Exception> {
         // Decode instruction
         let mut imm: i16    = (((self.instruction & 0xFE00_0000) >> 20) |
                                ((self.instruction & 0xF80) >> 7)) as i16;
@@ -572,25 +571,25 @@ impl Cpu {
             0b000   => {
                 let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let byte: u8    = (self.register.read(rs2) & 0xFF) as u8;
-                self.mmu.write8(self.csr, addr, byte)?;
+                self.mmu.write8(&self.csr, addr, byte)?;
             },
             // SH
             0b001   => {
                 let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let hword: u16  = (self.register.read(rs2) & 0xFFFF) as u16;
-                self.mmu.write16(self.csr, addr, hword)?;
+                self.mmu.write16(&self.csr, addr, hword)?;
             },
             // SW
             0b010   => {
                 let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let word: u32   = (self.register.read(rs2) & 0xFFFF_FFFF) as u32;
-                self.mmu.write32(self.csr, addr, word)?;
+                self.mmu.write32(&self.csr, addr, word)?;
             },
             // SD
             0b011   => {
                 let addr: usize = (self.register.read(rs1) as i64 + imm as i64) as usize;
                 let dword: u64  = self.register.read(rs2);
-                self.mmu.write64(self.csr, addr, dword)?;
+                self.mmu.write64(&self.csr, addr, dword)?;
             },
             _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
         }
@@ -939,74 +938,74 @@ impl Cpu {
                 // AMOSWAP.W
                 0b000_0100 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, wdata)?;
+                    self.mmu.write64(&self.csr, addr, wdata)?;
                     self.register.write(rs2, data);
                 },
                 // AMOADD.W
                 0b000_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data.wrapping_add(wdata) as i32 as i64 as u64)?;
+                    self.mmu.write64(&self.csr, addr, data.wrapping_add(wdata) as i32 as i64 as u64)?;
                 },
                 // AMOXOR.W
                 0b001_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data ^ (wdata as i32 as i64 as u64))?;
+                    self.mmu.write64(&self.csr, addr, data ^ (wdata as i32 as i64 as u64))?;
                 },
                 // AMOAND.W
                 0b011_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data & (wdata as i32 as i64 as u64))?;
+                    self.mmu.write64(&self.csr, addr, data & (wdata as i32 as i64 as u64))?;
                 },
                 // AMOOR.W
                 0b010_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data | (wdata as i32 as i64 as u64))?;
+                    self.mmu.write64(&self.csr, addr, data | (wdata as i32 as i64 as u64))?;
                 },
                 // AMOMIN.W
                 0b100_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::min(data as i64, self.register.read(rs2) as i32 as i64) as u64)?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::min(data as i64, self.register.read(rs2) as i32 as i64) as u64)?;
                 },
                 // AMOMAX.W
                 0b101_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::max(data as i64, wdata as i32 as i64) as u64)?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::max(data as i64, wdata as i32 as i64) as u64)?;
                 },
                 // AMOMINU.W
                 0b110_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::min(data, wdata))?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::min(data, wdata))?;
                 },
                 // AMOMAXU.W
                 0b111_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::max(data, wdata))?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::max(data, wdata))?;
                 },
                 _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },
@@ -1019,75 +1018,75 @@ impl Cpu {
                 // AMOSWAP.D
                 0b000_0100 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)? as i32 as i64 as u64;
+                    let data = self.mmu.read64(&self.csr, addr)? as i32 as i64 as u64;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, wdata)?;
+                    self.mmu.write64(&self.csr, addr, wdata)?;
                     self.register.write(rs2, data);
                 },
                 // AMOADD.D
                 0b000_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data.wrapping_add(wdata))?;
+                    self.mmu.write64(&self.csr, addr, data.wrapping_add(wdata))?;
                 },
                 // AMOXOR.D
                 0b001_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data ^ (wdata))?;
+                    self.mmu.write64(&self.csr, addr, data ^ (wdata))?;
                 },
                 // AMOAND.D
                 0b011_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data & (wdata))?;
+                    self.mmu.write64(&self.csr, addr, data & (wdata))?;
                 },
                 // AMOOR.D
                 0b010_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, data | (wdata))?;
+                    self.mmu.write64(&self.csr, addr, data | (wdata))?;
                 },
                 // AMOMIN.D
                 0b100_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::min(data as i64, wdata as i64) as u64)?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::min(data as i64, wdata as i64) as u64)?;
                 },
                 // AMOMAX.D
                 0b101_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::max(data as i64, wdata as i64) as u64)?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::max(data as i64, wdata as i64) as u64)?;
                 },
                 // AMOMINU.D
                 0b110_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::min(data, wdata))?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::min(data, wdata))?;
                 },
                 // AMOMAXU.D
                 0b111_0000 => {
                     let addr = self.register.read(rs1) as usize;
-                    let data = self.mmu.read64(self.csr, addr)?;
+                    let data = self.mmu.read64(&self.csr, addr)?;
                     let wdata = self.register.read(rs2);
                     self.register.write(rd, data);
-                    self.mmu.write64(self.csr, addr, std::cmp::max(data, wdata))?;
+                    self.mmu.write64(&self.csr, addr, std::cmp::max(data, wdata))?;
                 },
                 _       => panic!("[ERROR] unknown instruciton: 0x{:08x} (pc: 0x{:08x})", self.instruction, self.pc),
             },

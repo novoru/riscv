@@ -31,10 +31,10 @@ impl Plic {
 
     pub fn write8(&mut self, addr: usize, data: u8) {
         match addr {
-            PRIORITY_BASE ... PRIORITY_TOP              |
-            PENDING_ARRAY_BASE ... PENDING_ARRAY_TOP    |
-            ENABLE_BASE ... ENABLE_TOP                  |
-            CONTEXT_BASE ... CONTEXT_TOP                => self.plic[addr] = data,
+            PRIORITY_BASE ..= PRIORITY_TOP              |
+            PENDING_ARRAY_BASE ..= PENDING_ARRAY_TOP    |
+            ENABLE_BASE ..= ENABLE_TOP                  |
+            CONTEXT_BASE ..= CONTEXT_TOP                => self.plic[addr] = data,
             _                                           => unimplemented!(),
         }
     }
@@ -56,10 +56,10 @@ impl Plic {
 
     pub fn read8(&self, addr: usize) -> u8 {
         match addr {
-            PRIORITY_BASE ... PRIORITY_TOP              |
-            PENDING_ARRAY_BASE ... PENDING_ARRAY_TOP    |
-            ENABLE_BASE ... ENABLE_TOP                  |
-            CONTEXT_BASE ... CONTEXT_TOP                => { return self.plic[addr]; },
+            PRIORITY_BASE ..= PRIORITY_TOP              |
+            PENDING_ARRAY_BASE ..= PENDING_ARRAY_TOP    |
+            ENABLE_BASE ..= ENABLE_TOP                  |
+            CONTEXT_BASE ..= CONTEXT_TOP                => { return self.plic[addr]; },
             _                                           => unimplemented!(),
         }
     }

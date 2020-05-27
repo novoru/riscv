@@ -28,17 +28,17 @@ impl Exception {
             Exception::InstAddrMisalign     =>  0,
             Exception::InstAccessFault      =>  1,
             Exception::IllegalInst          =>  2,
-            Exception::Breakpoint	        =>  3,
+            Exception::Breakpoint           =>  3,
             Exception::LoadAddrMislign      =>  4,
-            Exception::LoadAccessFault	    =>  5,
+            Exception::LoadAccessFault      =>  5,
             Exception::StoreAddrMisalign    =>  6,
             Exception::StoreAccessFault     =>  7,
             Exception::EnvCallUmode         =>  8,
             Exception::EnvCallSmode         =>  9,
             Exception::EnvCallMmode         =>  11,
-            Exception::InstPageFault	    =>  12,
-            Exception::LoadPageFault	    =>  13,
-            Exception::StorePageFault	    =>  15,
+            Exception::InstPageFault        =>  12,
+            Exception::LoadPageFault        =>  13,
+            Exception::StorePageFault       =>  15,
         }
     }
 

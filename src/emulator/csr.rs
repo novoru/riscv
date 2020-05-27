@@ -384,7 +384,7 @@ impl Csr {
 
         for (i, digit) in digits.enumerate() {
             let bit = self.read_bit(addr, digit);
-            bits |= (bit as u64) <<i;
+            bits |= (bit as u64) << i;
         }
 
         bits

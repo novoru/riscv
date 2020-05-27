@@ -28,60 +28,60 @@ impl Mmu {
         }
     }
 
-    pub fn read8(&mut self, csr: Csr, vaddr: usize) -> Result<u8, Exception> {
+    pub fn read8(&mut self, csr: &Csr, vaddr: usize) -> Result<u8, Exception> {
         self.access = ACCESS::LOAD;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         Ok(self.bus.read8(paddr))
     }
     
-    pub fn read16(&mut self, csr: Csr, vaddr: usize) -> Result<u16, Exception> {
+    pub fn read16(&mut self, csr: &Csr, vaddr: usize) -> Result<u16, Exception> {
         self.access = ACCESS::LOAD;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         Ok(self.bus.read16(paddr))
     }
 
-    pub fn read32(&mut self, csr: Csr, vaddr: usize) -> Result<u32, Exception> {
+    pub fn read32(&mut self, csr: &Csr, vaddr: usize) -> Result<u32, Exception> {
         self.access = ACCESS::LOAD;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         Ok(self.bus.read32(paddr))
     }
     
-    pub fn read64(&mut self, csr: Csr, vaddr: usize) -> Result<u64, Exception> {
+    pub fn read64(&mut self, csr: &Csr, vaddr: usize) -> Result<u64, Exception> {
         self.access = ACCESS::LOAD;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         Ok(self.bus.read64(paddr))
     }
 
-    pub fn fetch32(&mut self, csr: Csr, vaddr: usize) -> Result<u32, Exception> {
+    pub fn fetch32(&mut self, csr: &Csr, vaddr: usize) -> Result<u32, Exception> {
         self.access = ACCESS::EXEC;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         Ok(self.bus.read32(paddr))
     }
 
-    pub fn write8(&mut self, csr: Csr, vaddr: usize, data: u8) -> Result<(), Exception>  {
+    pub fn write8(&mut self, csr: &Csr, vaddr: usize, data: u8) -> Result<(), Exception>  {
         self.access = ACCESS::STORE;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         self.bus.write8(paddr, data);
         Ok(())
     }
 
-    pub fn write16(&mut self, csr: Csr, vaddr: usize, data: u16) -> Result<(), Exception> {
+    pub fn write16(&mut self, csr: &Csr, vaddr: usize, data: u16) -> Result<(), Exception> {
         self.access = ACCESS::STORE;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         self.bus.write16(paddr, data);
         Ok(())
     }
 
-    pub fn write32(&mut self, csr: Csr, vaddr: usize, data: u32) -> Result<(), Exception> {
+    pub fn write32(&mut self, csr: &Csr, vaddr: usize, data: u32) -> Result<(), Exception> {
         self.access = ACCESS::STORE;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         self.bus.write32(paddr, data);
         Ok(())
     }
 
-    pub fn write64(&mut self, csr: Csr, vaddr: usize, data: u64) -> Result<(), Exception> { 
+    pub fn write64(&mut self, csr: &Csr, vaddr: usize, data: u64) -> Result<(), Exception> { 
         self.access = ACCESS::STORE;
-        let paddr = self.translate_addr(csr, vaddr)?;
+        let paddr = self.translate_addr(&csr, vaddr)?;
         self.bus.write64(paddr, data);
         Ok(())
     }
@@ -89,7 +89,7 @@ impl Mmu {
     // Translate virtual address to physical address (Sv39)
     // Reference:   RISC-V Privileged ISA Specification p.71~
     //              https://riscv.org/specifications/privileged-isa/
-    pub fn translate_addr(&mut self, csr: Csr, vaddr: usize) -> Result<usize, Exception> {
+    pub fn translate_addr(&mut self, csr: &Csr, vaddr: usize) -> Result<usize, Exception> {
         /*
          *  Sv39 virtual address
          * 
@@ -120,7 +120,7 @@ impl Mmu {
             return Ok(vaddr);
         }
 
-        if csr.read_bits(SATP, 60..63+1) == 0 {
+        if csr.read_bits(SATP, 60..64) == 0 {
             return Ok(vaddr);
         }
 
@@ -128,7 +128,6 @@ impl Mmu {
                     (vaddr >> 21) & 0x1FF,
                     (vaddr >> 30) & 0x1FF
                 ];
-        let va_pgoff    = vaddr & 0xFFF;
         let pte_v       = |pte: u64| (pte & 1u64);
         let pte_r       = |pte: u64| ((pte >> 1) & 1u64);
         let pte_w       = |pte: u64| ((pte >> 2) & 1u64);
@@ -162,7 +161,6 @@ impl Mmu {
 
             // Step 3
             if pte_v(pte) == 0u64 || (pte_r(pte) == 0u64 && pte_w(pte) == 1u64) {
-                eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
                 self.page_fault_exception()?;
             }
 
@@ -174,7 +172,6 @@ impl Mmu {
             i -= 1;
 
             if i < 0 {
-                eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
                 self.page_fault_exception()?;
             }
 
@@ -185,22 +182,18 @@ impl Mmu {
 
         // Step 5
         if csr.priv_level == PrivLevel::USER && pte_u(pte) == 0u64 {
-            eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
             self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::LOAD && pte_r(pte) == 0u64 {
-            eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
             self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::STORE && pte_w(pte) == 0u64 {
-            eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
             self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::EXEC && pte_x(pte) == 0u64 {
-            eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
             self.page_fault_exception()?;
         }
 
@@ -213,13 +206,12 @@ impl Mmu {
 
         // Step 7
         if pte_a(pte) == 0u64 || (self.access == ACCESS::STORE && pte_d(pte) == 0u64) {
-            eprintln!("[DEBUG] page fault {}-{}", file!(), line!());
             self.page_fault_exception()?;
         }
 
         // Step 8
 
-        let pa_pgoff = va_pgoff;
+        let pa_pgoff = vaddr & 0xFFF;
         let ppn = [ ((vpte[0] >> 10) & 0x1FF) as usize,
                     ((vpte[1] >> 19) & 0x1FF) as usize,
                     ((vpte[2] >> 28) & 0x3FF_FFFF) as usize
@@ -237,7 +229,6 @@ impl Mmu {
             0   => return Ok((ppn[2] << 30) | (ppn[1] << 21) | (ppn[0] << 12) + pa_pgoff),
             _   => panic!(),
         }
-
     }
 
     fn page_fault_exception(&self) -> Result<(), Exception> {
