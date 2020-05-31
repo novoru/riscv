@@ -2,9 +2,12 @@ run:
 	cargo run
 
 test:
-	cargo test
+	cargo test --quiet
 
 clean:
 	cargo clean
 
-.PHONY: run test clean
+bench:
+	cargo bench --lib --benches --quiet
+
+.PHONY: run test clean bench

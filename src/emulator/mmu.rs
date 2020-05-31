@@ -143,11 +143,13 @@ impl Mmu {
         let mut a = satp_ppn as usize * PAGE_SIZE;
         let mut i: i8 = LEVELS - 1;
         let mut pte: u64 = 0;
+        let mut ppn: usize = 0;
         let mut vpte = [0; LEVELS as usize];
+        let mut addr = 0;
         
         // Step 2
         while i >=0 {
-            let addr = a + vpn[i as usize] * PTE_SIZE;
+            addr = a + vpn[i as usize] * PTE_SIZE;
 
             /* ToDo: implement PMA
             if violate_pma(addr) || violate_pmp(addr) {
@@ -161,8 +163,12 @@ impl Mmu {
 
             // Step 3
             if pte_v(pte) == 0u64 || (pte_r(pte) == 0u64 && pte_w(pte) == 1u64) {
+                eprintln!("[DEBUG] {}-{}: page fault exception", file!(), line!());
                 self.page_fault_exception()?;
             }
+
+            ppn = ((pte >> 10) & 0xFFF_FFFF_FFFF) as usize;
+            a = ppn * PAGE_SIZE;
 
             // Step 4
             if pte_r(pte) == 1u64 || pte_x(pte) == 1u64 {
@@ -172,28 +178,30 @@ impl Mmu {
             i -= 1;
 
             if i < 0 {
+                eprintln!("[DEBUG] {}-{}: page fault exception", file!(), line!());
                 self.page_fault_exception()?;
             }
 
-            let ppn = ((pte >> 10) & 0xFFF_FFFF_FFFF) as usize;
-
-            a = ppn * PAGE_SIZE;
         }
 
         // Step 5
         if csr.priv_level == PrivLevel::USER && pte_u(pte) == 0u64 {
+            eprintln!("[DEBUG] {}-{}: page fault exception", file!(), line!());
             self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::LOAD && pte_r(pte) == 0u64 {
+            eprintln!("[DEBUG] {}-{}: page fault exception", file!(), line!());
             self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::STORE && pte_w(pte) == 0u64 {
+            eprintln!("[DEBUG] {}-{}: page fault exception", file!(), line!());
             self.page_fault_exception()?;
         }
 
         if self.access == ACCESS::EXEC && pte_x(pte) == 0u64 {
+            eprintln!("[DEBUG] {}-{}: page fault exception", file!(), line!());
             self.page_fault_exception()?;
         }
 
@@ -206,29 +214,36 @@ impl Mmu {
 
         // Step 7
         if pte_a(pte) == 0u64 || (self.access == ACCESS::STORE && pte_d(pte) == 0u64) {
-            self.page_fault_exception()?;
+            self.bus.write64(addr, pte | (1 << 6));     // set pte.a to 1
+            if self.access == ACCESS::STORE {
+                self.bus.write64(addr, pte | (1 << 7));     // also set pte.d to 1 
+            }
         }
 
         // Step 8
 
         let pa_pgoff = vaddr & 0xFFF;
-        let ppn = [ ((vpte[0] >> 10) & 0x1FF) as usize,
+        let ppns = [ ((vpte[0] >> 10) & 0x1FF) as usize,
                     ((vpte[1] >> 19) & 0x1FF) as usize,
                     ((vpte[2] >> 28) & 0x3FF_FFFF) as usize
                 ];
         
-        //eprintln!("[DEBUG] ppn2: 0x{:x}, ppn1: 0x{:x}, ppn0: 0x{:x}", ppn[2], ppn[1], ppn[0]);
+        //eprintln!("[DEBUG] ppn2: 0x{:x}, ppn1: 0x{:x}, ppn0: 0x{:x}", ppns[2], ppns[1], ppns[0]);
         //eprintln!("[DEBUG] vpn2: 0x{:x}, vpn1: 0x{:x}, vpn0: 0x{:x}", vpn[2], vpn[1], vpn[0]);
         //eprintln!("[DEBUG] pa_pgoff: 0x{:x}", pa_pgoff);
 
         //eprintln!("[DEBUG] level: {}", i);
 
-        match i {
-            2   => return Ok((ppn[2] << 30) | (vpn[1] << 21) | (vpn[0] << 12) + pa_pgoff),
-            1   => return Ok((ppn[2] << 30) | (ppn[1] << 21) | (vpn[0] << 12) + pa_pgoff),
-            0   => return Ok((ppn[2] << 30) | (ppn[1] << 21) | (ppn[0] << 12) + pa_pgoff),
+        let paddr = match i {
+            2   => (ppns[2] << 30) | (vpn[1]  << 21) | (vpn[0] << 12) + pa_pgoff,
+            1   => (ppns[2] << 30) | (ppns[1] << 21) | (vpn[0] << 12) + pa_pgoff,
+            0   => (ppn << 12) + pa_pgoff,
             _   => panic!(),
-        }
+        };
+
+        //eprintln!("[DEBUG] paddr: 0x{:16x}", paddr);
+
+        Ok(paddr)
     }
 
     fn page_fault_exception(&self) -> Result<(), Exception> {

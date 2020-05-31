@@ -67,6 +67,41 @@ fn bench_auipc(b: &mut Bencher) {
 }
 
 #[bench]
+fn bench_bne(b: &mut Bencher) {
+    let mut cpu = Cpu::new();
+    cpu.register.write(Registers::A5 as usize, 0x1);
+    cpu.mmu.write32(&cpu.csr, 0x8000_0000, 0xfee79ce3).unwrap();  // 0x8000_0000: bne	a5,a4,80000f78
+    cpu.fetch().unwrap();
+
+    b.iter(||  {
+        cpu.execute().unwrap();
+    });
+}
+
+#[bench]
+fn bench_bnez(b: &mut Bencher) {
+    let mut cpu = Cpu::new();
+    cpu.register.write(Registers::A5 as usize, 0x1);
+    cpu.mmu.write32(&cpu.csr, 0x8000_0000, 0xfe079ae3).unwrap();  // 0x8000_0000: bnez	a5,80000eac
+    cpu.fetch().unwrap();
+
+    b.iter(||  {
+        cpu.execute().unwrap();
+    });
+}
+
+#[bench]
+fn bench_beq(b: &mut Bencher) {
+    let mut cpu = Cpu::new();
+    cpu.mmu.write32(&cpu.csr, 0x8000_0000, 0x04060463).unwrap();  // 0x8000_0000: beqz	a2,80000fe4
+    cpu.fetch().unwrap();
+
+    b.iter(||  {
+        cpu.execute().unwrap();
+    });
+}
+
+#[bench]
 fn bench_lbu(b: &mut Bencher) {
     let mut cpu = Cpu::new();
     cpu.register.write(Registers::A0 as usize, 0x8000_0000);
@@ -107,6 +142,18 @@ fn bench_sd(b: &mut Bencher) {
     let mut cpu = Cpu::new();
     cpu.register.write(Registers::SP as usize, 0x8100_0000);
     cpu.mmu.write32(&cpu.csr, 0x8000_0000, 0x01413023).unwrap();  // 0x8000_0000: sd s4, 0(sp)
+    cpu.fetch().unwrap();
+
+    b.iter(||  {
+        cpu.execute().unwrap();
+    });
+}
+
+#[bench]
+fn bench_amoswap(b: &mut Bencher) {
+    let mut cpu = Cpu::new();
+    cpu.register.write(Registers::S1 as usize, 0x8100_0000);
+    cpu.mmu.write32(&cpu.csr, 0x8000_0000, 0x0cf4a7af).unwrap();  // 0x8000_0000: amoswap.w.aq	a5,a5,(s1)
     cpu.fetch().unwrap();
 
     b.iter(||  {
