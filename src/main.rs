@@ -28,7 +28,7 @@ fn main() {
     cpu.debug = opt.debug;
     cpu.step = opt.step;
     cpu.load(&opt.file);
-    //cpu.watch(Registers::PC, 0x800012bc, WatchExec::STOP);
+    //cpu.watch(Registers::PC, 0x80001264, WatchExec::STOP);
 
     cpu.run();
 }

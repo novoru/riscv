@@ -8,3 +8,4 @@ pub mod clint;
 pub mod plic;
 pub mod uart;
 pub mod interrupt;
+pub mod virtio;

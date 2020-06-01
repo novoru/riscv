@@ -2,6 +2,7 @@ use crate::emulator::dram::*;
 use crate::emulator::clint::*;
 use crate::emulator::plic::*;
 use crate::emulator::uart::*;
+use crate::emulator::virtio::*;
 
 /*
  * Physical Address Layout
@@ -47,6 +48,7 @@ pub struct Bus {
     clint:  Clint,
     plic:   Plic,
     uart0:  Uart,
+    virtio: Virtio,
 }
 
 impl Bus {
@@ -56,6 +58,7 @@ impl Bus {
             clint:  Clint::new(),
             plic:   Plic::new(),
             uart0:  Uart::new(),
+            virtio: Virtio::new(DeviceID::BlockDevice),
         }
     }
 
@@ -70,7 +73,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.write8(paddr - UART0_BASE, data),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.write8(paddr - VIRTIO_BASE, data),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.write8(paddr - DRAM_BASE, data),
             _                               => unimplemented!(),
@@ -88,7 +91,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.write16(paddr - UART0_BASE, data),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.write16(paddr - VIRTIO_BASE, data),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.write16(paddr - DRAM_BASE, data),
             _                               => unimplemented!(),
@@ -106,7 +109,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.write32(paddr - UART0_BASE, data),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.write32(paddr - VIRTIO_BASE, data),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.write32(paddr - DRAM_BASE, data),
             _                               => unimplemented!(),
@@ -124,7 +127,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.write64(paddr - UART0_BASE, data),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.write64(paddr - VIRTIO_BASE, data),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.write64(paddr - DRAM_BASE, data),
             _                               => unimplemented!(),
@@ -142,7 +145,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.read8(paddr - UART0_BASE),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.read8(paddr - VIRTIO_BASE),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.read8(paddr - DRAM_BASE),
             _                               => panic!("invalid paddr: 0x{:016x}", paddr),
@@ -160,7 +163,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.read16(paddr - UART0_BASE),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.read16(paddr - VIRTIO_BASE),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.read16(paddr - DRAM_BASE),
             _                               => panic!("invalid paddr: 0x{:016x}", paddr),
@@ -178,7 +181,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.read32(paddr - UART0_BASE),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.read32(paddr - VIRTIO_BASE),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.read32(paddr - DRAM_BASE),
             _                               => panic!("invalid paddr: 0x{:016x}", paddr),
@@ -196,7 +199,7 @@ impl Bus {
             // UART0
             UART0_BASE ..= UART0_TOP        => self.uart0.read64(paddr - UART0_BASE),
             // VIRTIO
-            VIRTIO_BASE ..= VIRTIO_TOP      => unimplemented!(),
+            VIRTIO_BASE ..= VIRTIO_TOP      => self.virtio.read64(paddr - VIRTIO_BASE),
             // DRAM
             DRAM_BASE ..= DRAM_TOP          => self.dram.read64(paddr - DRAM_BASE),
             _                               => panic!("invalid paddr: 0x{:016x}", paddr),
