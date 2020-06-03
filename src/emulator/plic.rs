@@ -1,8 +1,11 @@
 /*
  * PLIC: Platform-Level Interrupt Controller
+ * Reference:   RISC-V Platform-Level Interrupt Controller Specification
+ *              https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc
  */
 
 use crate::emulator::bus::*;
+use crate::emulator::interrupt::IrqNumber;
 
 pub const PLIC_SIZE: usize = PLIC_TOP - PLIC_BASE;
 
@@ -19,14 +22,52 @@ pub const CONTEXT_BASE: usize = 0x0020_0000;
 pub const CONTEXT_TOP:  usize = 0x03FF_F007;
 
 pub struct Plic {
-    plic: Vec<u8>,
+    plic:   Vec<u8>,
+    clock:  u64,
+    irq:    Option<IrqNumber>,
 }
 
 impl Plic {
     pub fn new() -> Self {
         Plic {
-            plic: vec![0; PLIC_SIZE],
+            plic:   vec![0; PLIC_SIZE],
+            clock:  0,
+            irq:    None,
         }
+    }
+
+    pub fn tick(&mut self, virtio_is_interrupting: bool, uart_is_interrupting: bool, mip: &mut u64) {
+        self.clock = self.clock.wrapping_add(1);
+
+        let virtio_priority = self.read32(PRIORITY_BASE + (IrqNumber::VIRTIO as usize * 4) as usize);
+        let uart_priority   = self.read32(PRIORITY_BASE + (IrqNumber::UART as usize * 4) as usize);
+
+        let virtio_enabled  = ((self.read32(ENABLE_BASE) >> IrqNumber::VIRTIO as u32) & 0x1) == 1;
+        let uart_enabled    = ((self.read32(ENABLE_BASE) >> IrqNumber::UART as u32) & 0x1) == 1;
+
+        let threshold       = self.read32(CONTEXT_BASE);
+        let interruptings   = [virtio_is_interrupting, uart_is_interrupting];
+        let enables         = [virtio_enabled, uart_enabled];
+        let priorities      = [virtio_priority, uart_priority];
+        let irqs            = [IrqNumber::VIRTIO, IrqNumber::UART];
+
+        let mut irq         = None;
+        let mut priority    = 0;
+
+        for i in 0..2 {
+            if  interruptings[i] && enables[i] &&
+                priorities[i] > threshold &&
+                priorities[i] > priority {
+                    irq         = Some(irqs[i]);
+                    priority    = priorities[i];
+                }
+        }
+
+        if irq != None {
+            self.irq = irq;
+            *mip |= 0x200;      // set SEIP(Supervisor external interrupts) bit
+        }
+
     }
 
     pub fn write8(&mut self, addr: usize, data: u8) {
@@ -59,7 +100,7 @@ impl Plic {
             PRIORITY_BASE ..= PRIORITY_TOP              |
             PENDING_ARRAY_BASE ..= PENDING_ARRAY_TOP    |
             ENABLE_BASE ..= ENABLE_TOP                  |
-            CONTEXT_BASE ..= CONTEXT_TOP                => { return self.plic[addr]; },
+            CONTEXT_BASE ..= CONTEXT_TOP                => self.plic[addr],
             _                                           => unimplemented!(),
         }
     }

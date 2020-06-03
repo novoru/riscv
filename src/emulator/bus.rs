@@ -44,6 +44,7 @@ pub const DRAM_TOP:     usize = 0x87FF_FFFF;
 
 
 pub struct Bus {
+    clock:  u64,
     dram:   Dram,
     clint:  Clint,
     plic:   Plic,
@@ -54,6 +55,7 @@ pub struct Bus {
 impl Bus {
     pub fn new() -> Self {
         Bus {
+            clock:  0,
             dram:   Dram::new(),
             clint:  Clint::new(),
             plic:   Plic::new(),
@@ -204,5 +206,13 @@ impl Bus {
             DRAM_BASE ..= DRAM_TOP          => self.dram.read64(paddr - DRAM_BASE),
             _                               => panic!("invalid paddr: 0x{:016x}", paddr),
         }
+    }
+
+    pub fn tick(&mut self, mip: &mut u64) {
+        //self.clint.tick(mip);
+        //self.virtio.tick(&mut self.dram);
+        self.uart0.tick();
+        //self.plic.tick(self.virtio.is_interrupting(), self.uart0.is_interrupting(), mip);
+        self.clock = self.clock.wrapping_add(1);
     }
 }

@@ -214,6 +214,8 @@ impl Cpu {
                 },
             }
 
+            self.mmu.tick(&mut self.csr.read(MIP));
+
             self.pc += 4;
         }
     }

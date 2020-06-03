@@ -224,8 +224,8 @@ impl Mmu {
 
         let pa_pgoff = vaddr & 0xFFF;
         let ppns = [ ((vpte[0] >> 10) & 0x1FF) as usize,
-                    ((vpte[1] >> 19) & 0x1FF) as usize,
-                    ((vpte[2] >> 28) & 0x3FF_FFFF) as usize
+                     ((vpte[1] >> 19) & 0x1FF) as usize,
+                     ((vpte[2] >> 28) & 0x3FF_FFFF) as usize
                 ];
         
         //eprintln!("[DEBUG] ppn2: 0x{:x}, ppn1: 0x{:x}, ppn0: 0x{:x}", ppns[2], ppns[1], ppns[0]);
@@ -248,11 +248,15 @@ impl Mmu {
 
     fn page_fault_exception(&self) -> Result<(), Exception> {
         match self.access {
-            ACCESS::LOAD    => return Err(Exception::LoadPageFault),
-            ACCESS::STORE   => return Err(Exception::StorePageFault),
-            ACCESS::EXEC    => return Err(Exception::InstPageFault),
+            ACCESS::LOAD    => Err(Exception::LoadPageFault),
+            ACCESS::STORE   => Err(Exception::StorePageFault),
+            ACCESS::EXEC    => Err(Exception::InstPageFault),
             _               => unimplemented!(),
         }
+    }
+
+    pub fn tick(&mut self, mip: &mut u64) {
+        self.bus.tick(mip);
     }
 
 }

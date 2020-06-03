@@ -2,6 +2,12 @@ use crate::emulator::cpu::Cpu;
 use crate::emulator::csr::*;
 use crate::emulator::plic::{ CONTEXT_BASE };
 
+#[derive(Copy, Clone, PartialEq, PartialOrd)]
+pub enum IrqNumber {
+    VIRTIO  = 1,
+    UART    = 10,
+}
+
 #[derive(Debug)]
 pub enum Interrupt {
     UserSoftwareIrq,

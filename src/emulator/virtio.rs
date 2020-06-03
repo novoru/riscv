@@ -79,6 +79,7 @@ pub struct Virtio {
     queue_notify:       u32,
     interrupt_status:   u64,
     status:             u32,
+    disk:               Vec<u8>,
 }
 
 impl Virtio {
@@ -101,6 +102,7 @@ impl Virtio {
             queue_notify:       0,
             interrupt_status:   0,
             status:             0,
+            disk:               Vec::new(),
         }
     }
 
