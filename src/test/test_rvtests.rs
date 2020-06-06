@@ -106,15 +106,15 @@ add_test!(rv64ua_p_amomax_d);
 add_test!(rv64ua_p_amomaxu_d);
 
 // RV64 supervisor-level, integer and vector
-/*
-add_test!(rv64si_p_csr);
+
+//add_test!(rv64si_p_csr);
 //add_test!(rv64si_p_dirty);
 //add_test!(rv64si_p_icache_alias);
 //add_test!(rv64si_p_ma_fetch);
 //add_test!(rv64si_p_sbreak);
 //add_test!(rv64si_p_scall);
 //add_test!(rv64si_p_wfi);
-*/
+
 // RV64 user-level, integer only, virtual memory is enabled
 /*
 add_test!(rv64ui_v_add);

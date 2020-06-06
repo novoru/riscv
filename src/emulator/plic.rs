@@ -6,6 +6,7 @@
 
 use crate::emulator::bus::*;
 use crate::emulator::interrupt::IrqNumber;
+use crate::emulator::csr::MIP_SEIP;
 
 pub const PLIC_SIZE: usize = PLIC_TOP - PLIC_BASE;
 
@@ -34,6 +35,10 @@ impl Plic {
             clock:  0,
             irq:    None,
         }
+    }
+
+    pub fn get_irqno(&self) -> Option<IrqNumber> {
+        self.irq
     }
 
     pub fn tick(&mut self, virtio_is_interrupting: bool, uart_is_interrupting: bool, mip: &mut u64) {
@@ -65,9 +70,8 @@ impl Plic {
 
         if irq != None {
             self.irq = irq;
-            *mip |= 0x200;      // set SEIP(Supervisor external interrupts) bit
+            *mip |= MIP_SEIP;
         }
-
     }
 
     pub fn write8(&mut self, addr: usize, data: u8) {

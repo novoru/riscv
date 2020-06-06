@@ -5,10 +5,6 @@
  *              http://byterunner.com/16550.html
  */
 
-use crate::emulator::bus::*;
-
-const UART_SIZE:    usize   = UART0_TOP - UART0_BASE;
-
 // Write mode
 const THR: usize    = 0b000;    // Transmit Holding Register
 const IER: usize    = 0b001;    // Interrupt Enable Register
@@ -28,8 +24,8 @@ const SPR: usize    = 0b111;    // Scatchpad Register
 // Flag bit
 const IER_RHR_IRQ:              u8  = 0b0000_0001;
 const IER_THR_IRQ:              u8  = 0b0000_0010;
-const IER_RCVLINE_STATUS_IRQ:   u8  = 0b0000_0100;
-const IER_MODEM_STATUS_IRQ:     u8  = 0b0000_1000;
+const _IER_RCVLINE_STATUS_IRQ:  u8  = 0b0000_0100;
+const _IER_MODEM_STATUS_IRQ:    u8  = 0b0000_1000;
 
 const LSR_RX_DATA_READY:        u8  = 0b0000_0001;
 const LSR_TX_HOLDING_EMPTY:     u8  = 0b0010_0000;
@@ -149,13 +145,13 @@ impl Uart {
     }
 
     pub fn is_interrupting(&mut self) -> bool {
-        if (self.ier & IER_RHR_IRQ) == 1 {
+        if (self.ier & IER_RHR_IRQ) != 0 {
             if self.rhr != 0 {
                 return true;
             }
         }
-        
-        if (self.ier & IER_THR_IRQ) == 1 {
+
+        if (self.ier & IER_THR_IRQ) != 0 {
             return true;
         }
 

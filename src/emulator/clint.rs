@@ -4,6 +4,7 @@
  */
 
 use crate::emulator::bus::*;
+use crate::emulator::csr::{ MIP_MSIP, MIP_MTIP };
 
 /*
  * CLINT memory Layout
@@ -25,23 +26,25 @@ pub const CLINT_SIZE: usize = CLINT_TOP - CLINT_BASE;
 
 // msip for hart 0
 pub const MSIP_BASE:        usize = 0x0000;
-pub const MSIP_TOP:         usize = 0x0007;
+pub const MSIP_TOP:         usize = 0x0003;
 
 // mtimecmp for hart 0
 pub const MTIMECMP_BASE:    usize = 0x4000;
 pub const MTIMECMP_TOP:     usize = 0x4008;
 
 pub const MTIME_BASE:       usize = 0xBFF8;
-pub const MTIME_TOP:        usize = 0xC000;
+pub const MTIME_TOP:        usize = 0xBFFF;
 
 pub struct Clint {
-    clint: Vec<u8>,
+    clock:  u64,
+    clint:  Vec<u8>,
 }
 
 impl Clint {
     pub fn new() -> Self {
         Clint {
-            clint: vec![0; CLINT_SIZE],
+            clock:  0,
+            clint:  vec![0; CLINT_SIZE],
         }
     }
 
@@ -102,5 +105,23 @@ impl Clint {
             MSIP_BASE   => { return self.clint[addr] & 0x1; },  // The least significant bit is reflected in the MSIP bit of the mip CSR
             _           => 0,                                   // Other bits in the msip register are hardwired to zero. 
         }
+    }
+
+    pub fn tick(&mut self, mip: &mut u64) {
+        self.clock = self.clock.wrapping_add(1);
+
+        if (self.clock % 8) == 0 {
+            let data = self.read32(MTIME_BASE).wrapping_add(1);
+            self.write32(MTIME_BASE, data);
+        }
+
+        if (self.read_msip(MSIP_BASE) & 1) != 0 {
+            *mip |= MIP_MSIP;
+        }
+
+        if self.read32(MTIMECMP_BASE) > 0 && self.read32(MTIME_BASE) >= self.read32(MTIMECMP_BASE) {
+            *mip |= MIP_MTIP;
+        }
+
     }
 }

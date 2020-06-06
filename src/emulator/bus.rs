@@ -3,6 +3,7 @@ use crate::emulator::clint::*;
 use crate::emulator::plic::*;
 use crate::emulator::uart::*;
 use crate::emulator::virtio::*;
+use crate::emulator::interrupt::IrqNumber;
 
 /*
  * Physical Address Layout
@@ -47,7 +48,7 @@ pub struct Bus {
     clock:  u64,
     dram:   Dram,
     clint:  Clint,
-    plic:   Plic,
+    pub plic:   Plic,
     uart0:  Uart,
     virtio: Virtio,
 }
@@ -64,6 +65,19 @@ impl Bus {
         }
     }
 
+    pub fn tick(&mut self, mip: &mut u64) {
+
+        self.clint.tick(mip);
+        //self.virtio.tick(&mut self.dram);
+        self.uart0.tick();
+        self.plic.tick(false, self.uart0.is_interrupting(), mip);
+        self.clock = self.clock.wrapping_add(1);
+    }
+
+    pub fn get_irqno(&self) -> Option<IrqNumber> {
+        self.plic.get_irqno()
+    }
+    
     pub fn write8(&mut self, paddr: usize, data: u8) {
         match paddr {
             // boot ROM
@@ -208,11 +222,4 @@ impl Bus {
         }
     }
 
-    pub fn tick(&mut self, mip: &mut u64) {
-        //self.clint.tick(mip);
-        //self.virtio.tick(&mut self.dram);
-        self.uart0.tick();
-        //self.plic.tick(self.virtio.is_interrupting(), self.uart0.is_interrupting(), mip);
-        self.clock = self.clock.wrapping_add(1);
-    }
 }

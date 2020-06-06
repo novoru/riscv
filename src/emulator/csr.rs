@@ -289,6 +289,19 @@ pub const DPC: u16              = 0x7B1;    // Debug PC.
 pub const DSCRATCH0: u16        = 0x7B2;    // Debug scratch register 0.
 pub const DSCRATCH1: u16        = 0x7B3;    // Debug scratch register 1.
 
+// Flag bit
+pub const SSTATUS_SIE:  u64 = 1 << 1;
+pub const MSTATUS_MIE:  u64 = 1 << 3;
+pub const MIP_USIP:     u64 = 1 << 0;       // User software interrupt
+pub const MIP_SSIP:     u64 = 1 << 1;       // Supervisor software interrupt
+pub const MIP_MSIP:     u64 = 1 << 3;       // Machine software interrupt
+pub const MIP_UTIP:     u64 = 1 << 4;       // User timer interrupt
+pub const MIP_STIP:     u64 = 1 << 5;       // Sueprvisor timer interrupt
+pub const MIP_MTIP:     u64 = 1 << 7;       // Machine timer interrupt
+pub const MIP_UEIP:     u64 = 1 << 8;       // User external interrupt
+pub const MIP_SEIP:     u64 = 1 << 9;       // Supervisor external interrupt
+pub const MIP_MEIP:     u64 = 1 << 11;      // Machine external interrupt
+
 // Privilege levels
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum PrivLevel {

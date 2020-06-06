@@ -2,7 +2,7 @@ mod test;
 pub mod emulator;
 
 use structopt::StructOpt;
-use emulator::cpu::{ Cpu, Registers, WatchExec };
+use emulator::cpu::Cpu;
 
 #[derive(Debug, StructOpt)]
 struct Opt {

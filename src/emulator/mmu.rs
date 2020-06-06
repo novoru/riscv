@@ -1,6 +1,7 @@
 use crate::emulator::csr::{ Csr, SATP, PrivLevel };
 use crate::emulator::exception::{ Exception };
 use crate::emulator::bus::Bus;
+use crate::emulator::interrupt::IrqNumber;
 
 pub const PAGE_SIZE: usize  = 1024 * 4;     // Page size: 4KiB (2**12)
 pub const LEVELS: i8        = 3;            // Paging levels (Sv39)
@@ -28,6 +29,14 @@ impl Mmu {
         }
     }
 
+    pub fn tick(&mut self, mip: &mut u64) {
+        self.bus.tick(mip);
+    }
+
+    pub fn get_irqno(&self) -> Option<IrqNumber> {
+        self.bus.get_irqno()
+    }
+    
     pub fn read8(&mut self, csr: &Csr, vaddr: usize) -> Result<u8, Exception> {
         self.access = ACCESS::LOAD;
         let paddr = self.translate_addr(&csr, vaddr)?;
@@ -253,10 +262,6 @@ impl Mmu {
             ACCESS::EXEC    => Err(Exception::InstPageFault),
             _               => unimplemented!(),
         }
-    }
-
-    pub fn tick(&mut self, mip: &mut u64) {
-        self.bus.tick(mip);
     }
 
 }

@@ -1,9 +1,9 @@
 use crate::emulator::cpu::Cpu;
 use crate::emulator::csr::*;
-use crate::emulator::plic::{ CONTEXT_BASE };
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 pub enum IrqNumber {
+    NONE    = 0,
     VIRTIO  = 1,
     UART    = 10,
 }
@@ -22,17 +22,18 @@ pub enum Interrupt {
 }
 
 impl Interrupt {
-    fn exc_code(&self) -> u8 {
+    fn exc_code(&self) -> u64 {
+        let code: u64 = 1 << 63;
         match self {
-            Interrupt::UserSoftwareIrq          => 0,
-            Interrupt::SupervisorSoftwareIrq    => 1,
-            Interrupt::MachineSoftwareIrq       => 3,
-            Interrupt::UserTimerIrq             => 4,
-            Interrupt::SupervisorTimerIrq       => 5,
-            Interrupt::MachineTimerIrq          => 7,
-            Interrupt::UserExtIrq(_irq)         => 8,
-            Interrupt::SupervisorExtIrq(_irq)   => 9,
-            Interrupt::MachineExtIrq(_irq)      => 11,
+            Interrupt::UserSoftwareIrq          => code + 0,
+            Interrupt::SupervisorSoftwareIrq    => code + 1,
+            Interrupt::MachineSoftwareIrq       => code + 3,
+            Interrupt::UserTimerIrq             => code + 4,
+            Interrupt::SupervisorTimerIrq       => code + 5,
+            Interrupt::MachineTimerIrq          => code + 7,
+            Interrupt::UserExtIrq(_)            => code + 8,
+            Interrupt::SupervisorExtIrq(_)      => code + 9,
+            Interrupt::MachineExtIrq(_)         => code + 11,
         }
     }
 
@@ -46,80 +47,211 @@ impl Interrupt {
     }
 
     pub fn take_trap(&mut self, cpu: &mut Cpu) {
-        let cur_pc = cpu.pc as u64;
-        let prev_level  = cpu.csr.priv_level;
+        println!("[DEBUG] {}-{}: pc= 0x{:x}, take trap ({:?}=0x{:x})", file!(), line!(), cpu.pc, self, self.exc_code());
+        let cur_pc = cpu.pc;
+        let cur_priv_level = cpu.csr.priv_level;
 
-        let mideleg = cpu.csr.read(MIDELEG);
-        let sideleg = cpu.csr.read(SIDELEG);
+        let cause = self.exc_code();
+        let pos = cause & 0xFF;
 
-        let pos = self.exc_code() & 0xFF;
+        let medeleg = cpu.csr.read(MEDELEG);
+        let sedeleg = cpu.csr.read(SEDELEG);
 
-        if ((mideleg >> pos) & 1) == 0 {
-            cpu.csr.priv_level = PrivLevel::MACHINE;
-        }
-        else {
-            if (sideleg >> pos & 0b1) == 0 {
-                cpu.csr.priv_level = PrivLevel::SUPERVISOR;
-            }
-            else {
-                cpu.csr.priv_level = PrivLevel::USER;
-            }
-        }
-
-        cpu.mmu.write32(&cpu.csr, CONTEXT_BASE + 0x1004, self.irq() as u32).unwrap();
-
-        match cpu.csr.priv_level {
-            PrivLevel::MACHINE      => {
-                let vector = match cpu.csr.read_bit(MTVEC, 0) {
-                    true    => (self.exc_code() * 4) as usize,
-                    false   => 0,
-                };
-
-                cpu.pc = (cpu.csr.read(MTVEC) & !1) as usize + vector;
-                cpu.pc -= 4;
-
-                cpu.csr.write(MEPC, cur_pc & !1);
-                cpu.csr.write(MCAUSE, (self.exc_code() as u64 | (1 << 63)) as u64);
-                cpu.csr.write(MTVAL, 0);
-                let mstatus = cpu.csr.read_bit(MSTATUS, 3);
-                cpu.csr.write_bit(MSTATUS, 7, mstatus);
-                cpu.csr.write_bit(MSTATUS, 3, false);
-                cpu.csr.write_bits(MSTATUS, 11..13, 0b00);
+        let new_priv_level = match ((medeleg >> pos) & 1) == 0 {
+            true    => PrivLevel::MACHINE,
+            false   => match ((sedeleg >> pos) & 1) == 0 {
+                true    => PrivLevel::SUPERVISOR,
+                false   => PrivLevel::USER,
             },
-            PrivLevel::SUPERVISOR   => {
-                let vector = match cpu.csr.read_bit(STVEC, 0) {
-                    true    => (self.exc_code() * 4) as usize,
-                    false   => 0,
-                };
+        };
 
-                cpu.pc = (cpu.csr.read(STVEC) & !1) as usize + vector;
-                cpu.pc -= 4;
+        let cur_status = match cpu.csr.priv_level {
+            PrivLevel::MACHINE      => cpu.csr.read(MSTATUS),
+            PrivLevel::SUPERVISOR   => cpu.csr.read(SSTATUS),
+            PrivLevel::USER         => cpu.csr.read(USTATUS),
+            PrivLevel::RESERVED     => panic!(),
+        };
 
-                cpu.csr.write(SEPC, cur_pc & !1);
-                cpu.csr.write(SCAUSE, (self.exc_code() as u64 | (1 << 63)) as u64);
-                cpu.csr.write(STVAL, 0);
-                let sstatus = cpu.csr.read_bit(SSTATUS, 1);
-                cpu.csr.write_bit(SSTATUS, 5, sstatus);
-                cpu.csr.write_bit(SSTATUS, 1, false);
-                match prev_level {
-                    PrivLevel::USER => cpu.csr.write_bit(SSTATUS, 8, false),
-                    _               => cpu.csr.write_bit(SSTATUS, 8, true),
+        let ie = match new_priv_level {
+            PrivLevel::MACHINE      => cpu.csr.read(MIE),
+            PrivLevel::SUPERVISOR   => cpu.csr.read(SIE),
+            PrivLevel::USER         => cpu.csr.read(UIE),
+            PrivLevel::RESERVED     => panic!(),
+        };
+
+        let cur_mie = (cur_status >> 3) & 1;
+        let cur_sie = (cur_status >> 1) & 1;
+        let _cur_uie =  cur_status & 1;
+
+        // Software interrupt enable
+        let msie = (ie >> 3) & 1;
+        let ssie = (ie >> 1) & 1;
+        let usie =  ie & 1;
+
+        // Timer interrupt enable
+        let mtie = (ie >> 7) & 1;
+        let stie = (ie >> 5) & 1;
+        let utie = (ie >> 4) & 1;
+
+        // External interrupt enable
+        let meie = (ie >> 11) & 1;
+        let seie = (ie >> 9) & 1;
+        let ueie = (ie >> 8) & 1;
+
+        if new_priv_level < cur_priv_level {
+            return;
+        }
+        else if new_priv_level == cur_priv_level {
+            match cpu.csr.priv_level {
+                PrivLevel::MACHINE  => {
+                    if cur_mie == 0 {
+                        return;
+                    }
+                },
+                PrivLevel::SUPERVISOR   => {
+                    if cur_sie == 0 {
+                        return;
+                    }
+                },
+                PrivLevel::USER => {
+                    if cur_sie == 0 {
+                        return;
+                    }
+                },
+                PrivLevel::RESERVED => unimplemented!(),            
+            }
+        }
+
+        match self {
+            Interrupt::UserSoftwareIrq  => {
+                if usie == 0 {
+                    return;
                 }
             },
-            PrivLevel::USER         => {
-                let vector = match cpu.csr.read_bit(UTVEC, 0) {
-                    true    => (self.exc_code() * 4) as usize,
-                    false   => 0,
-                };
-
-                cpu.pc = (cpu.csr.read(UTVEC) & !1) as usize + vector;
-                cpu.pc -= 4;
-
-                cpu.csr.write(UEPC, cur_pc);
-                cpu.csr.write(UCAUSE, (self.exc_code() as u64 | (1 << 63)) as u64);
-                cpu.csr.write(UTVAL, 0);
+            Interrupt::SupervisorSoftwareIrq  => {
+                if ssie == 0 {
+                    return;
+                }
             },
-            _                       => unimplemented!(),
+            Interrupt::MachineSoftwareIrq  => {
+                if msie == 0 {
+                    return;
+                }
+            },
+            Interrupt::UserTimerIrq  => {
+                if utie == 0 {
+                    return;
+                }
+            },
+            Interrupt::SupervisorTimerIrq  => {
+                if stie == 0 {
+                    return;
+                }
+            },
+            Interrupt::MachineTimerIrq  => {
+                if mtie == 0 {
+                    return;
+                }
+            },
+            Interrupt::UserExtIrq(_)  => {
+                if ueie == 0 {
+                    return;
+                }
+            },
+            Interrupt::SupervisorExtIrq(_)  => {
+                if seie == 0 {
+                    return;
+                }
+            },
+            Interrupt::MachineExtIrq(_)  => {
+                if meie == 0 {
+                    return;
+                }
+            },
+        }
+
+        cpu.csr.priv_level = new_priv_level;
+        
+        let epc_addr = match cpu.csr.priv_level {
+            PrivLevel::MACHINE      => MEPC,
+            PrivLevel::SUPERVISOR   => SEPC,
+            PrivLevel::USER         => UEPC,
+            PrivLevel::RESERVED     => panic!(),
+        };
+        
+        let cause_addr = match cpu.csr.priv_level {
+            PrivLevel::MACHINE      => MCAUSE,
+            PrivLevel::SUPERVISOR   => SCAUSE,
+            PrivLevel::USER         => UCAUSE,
+            PrivLevel::RESERVED     => panic!(),
+        };
+        
+        let tval_addr = match cpu.csr.priv_level {
+            PrivLevel::MACHINE      => MTVAL,
+            PrivLevel::SUPERVISOR   => STVAL,
+            PrivLevel::USER         => UTVAL,
+            PrivLevel::RESERVED     => panic!(),
+        };
+        
+        let tvec_addr = match cpu.csr.priv_level {
+            PrivLevel::MACHINE      => MTVEC,
+            PrivLevel::SUPERVISOR   => STVEC,
+            PrivLevel::USER         => UTVEC,
+            PrivLevel::RESERVED     => panic!(),
+        };
+
+        cpu.csr.write(epc_addr, cur_pc as u64);
+        cpu.csr.write(cause_addr, cause as u64);
+        cpu.csr.write(tval_addr, self.irq());
+        cpu.pc = cpu.csr.read(tvec_addr) as usize;
+
+        if (cpu.pc & 0x3) != 0 {
+            cpu.pc = (cpu.pc & !0x3) + 4 * (cause as usize & 0xFFFF);
+        }
+
+        match cpu.csr.priv_level {
+            PrivLevel::MACHINE  => {
+                let status  = cpu.csr.read(MSTATUS);
+                let mie     = (status >> 3) & 1;
+                let new_status = (status & !0x1888) | (mie << 7) | ((cur_priv_level as u64) << 11);
+                cpu.csr.write(MSTATUS, new_status);
+            },
+            PrivLevel::SUPERVISOR   => {
+                let status  = cpu.csr.read(SSTATUS);
+                let sie     = (status >> 3) & 1;
+                let new_status = (status & !0x1888) | (sie << 5) | ((cur_priv_level as u64) << 8);
+                cpu.csr.write(SSTATUS, new_status);
+            },
+            PrivLevel::USER     => unimplemented!(),
+            PrivLevel::RESERVED => panic!(),
+        }
+
+        match self {
+            Interrupt::MachineExtIrq(_) => {
+                let data = cpu.csr.read(MIP) & !MIP_MEIP;
+                cpu.csr.write(MIP, data);
+            },
+            Interrupt::MachineSoftwareIrq   => {
+                let data = cpu.csr.read(MIP) & !MIP_MSIP;
+                cpu.csr.write(MIP, data);
+            },
+            Interrupt::MachineTimerIrq  => {
+                let data = cpu.csr.read(MIP) & !MIP_MTIP;
+                cpu.csr.write(MIP, data);
+            },
+            Interrupt::SupervisorExtIrq(_)  => {
+                let data = cpu.csr.read(MIP) & !MIP_SEIP;
+                cpu.csr.write(MIP, data);
+            },
+            Interrupt::SupervisorSoftwareIrq    => {
+                let data = cpu.csr.read(MIP) & !MIP_SSIP;
+                cpu.csr.write(MIP, data);
+            },
+            Interrupt::SupervisorTimerIrq   => {
+                let data = cpu.csr.read(MIP) & !MIP_STIP;
+                cpu.csr.write(MIP, data);
+            },
+            _   => unimplemented!(),
         }
     }
 }

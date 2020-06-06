@@ -3,6 +3,7 @@ use crate::emulator::dram::*;
 use crate::emulator::csr::*;
 use crate::emulator::exception::Exception;
 use crate::emulator::bus::*;
+use crate::emulator::interrupt::{ Interrupt, IrqNumber };
 
 use std::fs::read;
 use std::fmt;
@@ -137,19 +138,21 @@ pub struct Cpu {
     pub debug: bool,                // Debug flag
     pub step: bool,                 // Step execution mode flag
     watchpoint: (Registers, u64, WatchExec),
+    clock: u64,
 }
 
 impl Cpu {
     pub fn new() -> Self {
         Cpu {
-            register: XRegisters::new(),
-            instruction: 0,
-            pc: INIT_PC,
-            mmu: Mmu::new(),
-            csr: Csr::new(),
-            debug: false,
-            step: false,
-            watchpoint: (Registers::ZERO, 1, WatchExec::EXIT),
+            register:       XRegisters::new(),
+            instruction:    0,
+            pc:             INIT_PC,
+            mmu:            Mmu::new(),
+            csr:            Csr::new(),
+            debug:          false,
+            step:           false,
+            watchpoint:     (Registers::ZERO, 1, WatchExec::EXIT),
+            clock:          0,
         }
     }
 
@@ -214,10 +217,76 @@ impl Cpu {
                 },
             }
 
-            self.mmu.tick(&mut self.csr.read(MIP));
+            self.pc = self.pc.wrapping_add(4);
+            self.tick();
+            
+            match self.check_interrupt() {
+                Some(mut interrupt) => {
+                    interrupt.take_trap(self);
+                    continue;
+                },
+                None            => {},
+            }
 
-            self.pc += 4;
+            self.clock = self.clock.wrapping_add(1);
+            self.csr.write(CYCLE, self.clock);
         }
+    }
+
+    fn tick(&mut self) {
+        let mut mip = self.csr.read(MIP);
+        self.mmu.tick(&mut mip);
+        self.csr.write(MIP, mip);
+    }
+
+    pub fn check_interrupt(&mut self) -> Option<Interrupt> {
+        match self.csr.priv_level {
+            PrivLevel::MACHINE      => {
+                if (self.csr.read(MSTATUS) & MSTATUS_MIE) == 0 {
+                    return None;
+                }
+            },
+            PrivLevel::SUPERVISOR   => {
+                if (self.csr.read(SSTATUS) & SSTATUS_SIE) == 0 {
+                    return None;
+                }
+            },
+            _   => return None,
+        }
+
+        let irq = match self.mmu.get_irqno() {
+            Some(irq)   => irq,
+            None        => IrqNumber::NONE,
+        };
+
+        let pending = self.csr.read(MIE) & self.csr.read(MIP);
+
+        if (pending & MIP_MEIP) != 0 {
+            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MEIP);
+            return Some(Interrupt::MachineExtIrq(irq as u64));
+        }
+        else if (pending & MIP_MSIP) != 0 {
+            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MSIP);
+            return Some(Interrupt::MachineSoftwareIrq);
+        }
+        else if (pending & MIP_MTIP) != 0 {
+            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MTIP);
+            return Some(Interrupt::MachineTimerIrq);
+        }
+        else if (pending & MIP_SEIP) != 0 {
+            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MEIP);
+            return Some(Interrupt::SupervisorExtIrq(irq as u64));
+        }
+        else if (pending & MIP_SSIP) != 0 {
+            self.csr.write(MIP, self.csr.read(MIP) & !MIP_SSIP);
+            return Some(Interrupt::SupervisorSoftwareIrq);
+        }
+        else if (pending & MIP_STIP) != 0 {
+            self.csr.write(MIP, self.csr.read(MIP) & !MIP_STIP);
+            return Some(Interrupt::SupervisorTimerIrq);
+        }
+        
+        None
     }
 
     pub fn fetch(&mut self) -> Result<(), Exception> {

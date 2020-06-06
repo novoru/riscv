@@ -1,10 +1,9 @@
-use crate::emulator::bus::*;
 
 #[test]
 pub fn test_virtio_magic_value() {
     use super::super::emulator;
+    use crate::emulator::bus::VIRTIO_BASE;
     use emulator::cpu::Cpu;
-    use emulator::csr::*;
 
     let mut cpu = Cpu::new();
 
@@ -14,8 +13,8 @@ pub fn test_virtio_magic_value() {
 #[test]
 pub fn test_virtio_version() {
     use super::super::emulator;
+    use crate::emulator::bus::VIRTIO_BASE;
     use emulator::cpu::Cpu;
-    use emulator::csr::*;
 
     let mut cpu = Cpu::new();
 
@@ -25,8 +24,8 @@ pub fn test_virtio_version() {
 #[test]
 pub fn test_virtio_device_id() {
     use super::super::emulator;
+    use crate::emulator::bus::VIRTIO_BASE;
     use emulator::cpu::Cpu;
-    use emulator::csr::*;
 
     let mut cpu = Cpu::new();
 
@@ -36,8 +35,8 @@ pub fn test_virtio_device_id() {
 #[test]
 pub fn test_virtio_vendor_id() {
     use super::super::emulator;
+    use crate::emulator::bus::VIRTIO_BASE;
     use emulator::cpu::Cpu;
-    use emulator::csr::*;
 
     let mut cpu = Cpu::new();
 
