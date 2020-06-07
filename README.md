@@ -52,7 +52,21 @@ make test
 
 ## 📚 References
 Documents
-- [RISC-V: Specifications](https://riscv.org/specifications/)
+- RISC-V
+    - [RISC-V: Specifications](https://riscv.org/specifications/)
+    - [RISC-V Platform-Level Interrupt Controller Specification](https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc)
+    - [SiFive S51 Manual v19.08p2p0](https://sifive.cdn.prismic.io/sifive/8daf40b4-a369-4490-ab5b-509ee68f6bc2_sifive_coreip_S51_AXI4_rtl_v19_08p2p0_release_manual.pdf)
+    - [An Introduction to the RISC-V Architecture](https://sifive.cdn.prismic.io/sifive/25f3cf28-47ae-4cea-9e64-ecd43dea7f11_An+Introduction+to+the+RISC-V+Architecture.pdf)
+    - [RISC-V原典 オープンアーキテクチャのススメ](https://www.nikkeibp.co.jp/atclpubmkt/book/18/269170/)
+- UART
+    - [TECHNICAL DATA ON 16550](http://byterunner.com/16550.html)
+- VIRTIO
+    - [Virtual I/O Device (VIRTIO) Version 1.1 Committee Specification 01](https://docs.oasis-open.org/virtio/virtio/v1.1/cs01/virtio-v1.1-cs01.html)
+    - [ハイパーバイザの作り方～ちゃんと理解する仮想化技術～ 第１２回virtioによる準仮想化デバイス その２「Virtqueueとvirtio-netの実現」](https://syuu1228.github.io/howto_implement_hypervisor/part12.pdf)
+- Others
+    - [Freedom Metal](https://sifive.github.io/freedom-metal-docs/)
+    - [The Adventures of OS: Making a RISC-V Operating System using Rust](http://osblog.stephenmarz.com/index.html)
+
 
 Emulators
 - [riscv/riscv-isa-sim ](https://github.com/riscv/riscv-isa-sim)
