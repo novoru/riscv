@@ -11,6 +11,16 @@ impl Dram {
         }
     }
 
+    pub fn load(&mut self, binary: Vec<u8>) {
+        if binary.len() > DRAM_SIZE {
+            panic!("[ERROR] too large binary: {}[Byte] (limit: {}[Byte])", binary.len(), DRAM_SIZE);
+        }
+
+        for (i, byte) in binary.iter().enumerate() {
+            self.dram[i] = *byte;
+        }
+    }
+
     pub fn read8(&self, paddr: usize) -> u8 {
         self.dram[paddr]
     }

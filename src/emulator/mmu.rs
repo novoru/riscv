@@ -29,6 +29,14 @@ impl Mmu {
         }
     }
 
+    pub fn load_dram(&mut self, binary: Vec<u8>) {
+        self.bus.load_dram(binary);
+    }
+
+    pub fn load_disk(&mut self, binary: Vec<u8>) {
+        self.bus.load_disk(binary);
+    }
+
     pub fn tick(&mut self, mip: &mut u64) {
         self.bus.tick(mip);
     }

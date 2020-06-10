@@ -11,13 +11,13 @@ use crate::emulator::csr::MIP_SEIP;
 pub const PLIC_SIZE: usize = PLIC_TOP - PLIC_BASE;
 
 pub const PRIORITY_BASE:    usize = 0x0000_0004;
-pub const PRIORITY_TOP:     usize = 0x0000_0FFC;
+pub const PRIORITY_TOP:     usize = 0x0000_0FFF;
 
 pub const PENDING_ARRAY_BASE:   usize = 0x0000_1000;
 pub const PENDING_ARRAY_TOP:    usize = 0x0000_107F;
 
 pub const ENABLE_BASE:  usize = 0x0000_2000;
-pub const ENABLE_TOP:   usize = 0x001F_1FFF;
+pub const ENABLE_TOP:   usize = 0x001F_2002;
 
 pub const CONTEXT_BASE: usize = 0x0020_0000;
 pub const CONTEXT_TOP:  usize = 0x03FF_F007;

@@ -95,7 +95,7 @@ impl Clint {
 
     fn write_msip(&mut self, addr: usize, data: u8) {
         match addr {
-            MSIP_BASE   => self.clint[addr] = data & 0x1,   // The least significant bit is reflected in the MSIP bit of the mip CSR
+            MSIP_BASE   => self.clint[addr] |= data & 0x1,   // The least significant bit is reflected in the MSIP bit of the mip CSR
             _           => (),                              // Other bits in the msip register are hardwired to zero. 
         }
     }
@@ -115,7 +115,7 @@ impl Clint {
             self.write32(MTIME_BASE, data);
         }
 
-        if (self.read_msip(MSIP_BASE) & 1) != 0 {
+        if (self.read32(MSIP_BASE) & 1) != 0 {
             *mip |= MIP_MSIP;
         }
 

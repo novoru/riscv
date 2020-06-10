@@ -47,19 +47,24 @@ impl Interrupt {
     }
 
     pub fn take_trap(&mut self, cpu: &mut Cpu) {
-        println!("[DEBUG] {}-{}: pc= 0x{:x}, take trap ({:?}=0x{:x})", file!(), line!(), cpu.pc, self, self.exc_code());
+        //println!("[DEBUG] {}-{}: pc= 0x{:x}, take trap ({:?}=0x{:x})", file!(), line!(), cpu.pc, self, self.exc_code());
+        /*
+        use std::io::stdin;
+        let mut input = String::new();
+        stdin().read_line(&mut input).unwrap();
+        */
         let cur_pc = cpu.pc;
         let cur_priv_level = cpu.csr.priv_level;
 
         let cause = self.exc_code();
         let pos = cause & 0xFF;
 
-        let medeleg = cpu.csr.read(MEDELEG);
-        let sedeleg = cpu.csr.read(SEDELEG);
+        let mideleg = cpu.csr.read(MIDELEG);
+        let sideleg = cpu.csr.read(SIDELEG);
 
-        let new_priv_level = match ((medeleg >> pos) & 1) == 0 {
+        let new_priv_level = match ((mideleg >> pos) & 1) == 0 {
             true    => PrivLevel::MACHINE,
-            false   => match ((sedeleg >> pos) & 1) == 0 {
+            false   => match ((sideleg >> pos) & 1) == 0 {
                 true    => PrivLevel::SUPERVISOR,
                 false   => PrivLevel::USER,
             },
@@ -81,7 +86,7 @@ impl Interrupt {
 
         let cur_mie = (cur_status >> 3) & 1;
         let cur_sie = (cur_status >> 1) & 1;
-        let _cur_uie =  cur_status & 1;
+        let cur_uie =  cur_status & 1;
 
         // Software interrupt enable
         let msie = (ie >> 3) & 1;
@@ -97,12 +102,24 @@ impl Interrupt {
         let meie = (ie >> 11) & 1;
         let seie = (ie >> 9) & 1;
         let ueie = (ie >> 8) & 1;
+        
+        /*
+        println!("[DEBUG] {}-{}: priv_level: {:?})", file!(), line!(), cur_priv_level);
+        println!("[DEBUG] {}-{}: new_priv_level: {:?})", file!(), line!(), new_priv_level);
+        println!("[DEBUG] {}-{}: mideleg: 0b{:b})", file!(), line!(), mideleg);
+        println!("[DEBUG] {}-{}: sideleg: 0b{:b})", file!(), line!(), sideleg);
+        println!("[DEBUG] {}-{}: mip: 0b{:b})", file!(), line!(), cpu.csr.read(MIP));
+        println!("[DEBUG] {}-{}: ie: 0b{:b})", file!(), line!(), ie);
+        println!("[DEBUG] {}-{}: msie: {}, mtie: {}, meie: {})", file!(), line!(), msie, mtie, meie);
+        println!("[DEBUG] {}-{}: ssie: {}, stie: {}, seie: {})", file!(), line!(), ssie, stie, seie);
+        println!("[DEBUG] {}-{}: usie: {}, utie: {}, ueie: {})", file!(), line!(), usie, utie, ueie);
+        */
 
         if new_priv_level < cur_priv_level {
             return;
         }
         else if new_priv_level == cur_priv_level {
-            match cpu.csr.priv_level {
+            match cur_priv_level {
                 PrivLevel::MACHINE  => {
                     if cur_mie == 0 {
                         return;
@@ -114,13 +131,15 @@ impl Interrupt {
                     }
                 },
                 PrivLevel::USER => {
-                    if cur_sie == 0 {
+                    if cur_uie == 0 {
                         return;
                     }
                 },
                 PrivLevel::RESERVED => unimplemented!(),            
             }
         }
+        
+        //println!("[DEBUG] {}-{}", file!(), line!());
 
         match self {
             Interrupt::UserSoftwareIrq  => {
@@ -170,6 +189,8 @@ impl Interrupt {
             },
         }
 
+        //println!("[DEBUG] {}-{}", file!(), line!());
+
         cpu.csr.priv_level = new_priv_level;
         
         let epc_addr = match cpu.csr.priv_level {
@@ -209,6 +230,8 @@ impl Interrupt {
             cpu.pc = (cpu.pc & !0x3) + 4 * (cause as usize & 0xFFFF);
         }
 
+        //println!("[DEBUG] {}-{} pc: 0x{:x}", file!(), line!(), cpu.pc);
+
         match cpu.csr.priv_level {
             PrivLevel::MACHINE  => {
                 let status  = cpu.csr.read(MSTATUS);
@@ -218,8 +241,8 @@ impl Interrupt {
             },
             PrivLevel::SUPERVISOR   => {
                 let status  = cpu.csr.read(SSTATUS);
-                let sie     = (status >> 3) & 1;
-                let new_status = (status & !0x1888) | (sie << 5) | ((cur_priv_level as u64) << 8);
+                let sie     = (status >> 1) & 1;
+                let new_status = (status & !0x122) | (sie << 5) | (((cur_priv_level as u64) & 1) << 8);
                 cpu.csr.write(SSTATUS, new_status);
             },
             PrivLevel::USER     => unimplemented!(),

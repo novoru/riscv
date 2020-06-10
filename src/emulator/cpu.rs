@@ -7,6 +7,7 @@ use crate::emulator::interrupt::{ Interrupt, IrqNumber };
 
 use std::fs::read;
 use std::fmt;
+use std::io::stdin;
 
 type Instruction    = u32;
 
@@ -156,23 +157,25 @@ impl Cpu {
         }
     }
 
-    pub fn load(&mut self, filename: &String) -> usize {
+    pub fn load_dram(&mut self, filename: &String) -> usize {
         let binary = read(filename).unwrap();
         let len = binary.len();
 
-        if len > DRAM_SIZE {
-            panic!("[ERROR] too large binary({}): {} Byte", filename, len);
-        }
-        
-        for (i, byte) in binary.iter().enumerate() {
-            self.mmu.write8(&self.csr, DRAM_BASE+i, *byte).unwrap();
-        }
+        self.mmu.load_dram(binary);
+
+        len
+    }
+
+    pub fn load_disk(&mut self, filename: &String) -> usize {
+        let binary = read(filename).unwrap();
+        let len = binary.len();
+
+        self.mmu.load_disk(binary);
 
         len
     }
 
     pub fn run(&mut self) {
-        use std::io::stdin;
 
         let mut input = String::new();
 
@@ -187,8 +190,11 @@ impl Cpu {
 
             if self.debug { println!("[INFO] pc: 0x{:08x}(0x{:08x})", self.pc, self.mmu.translate_addr(&self.csr, self.pc).unwrap()); }
             if self.debug { println!("{}", inspect_instruciton(self.instruction)); }
+            if self.debug { println!("mie: 0x{:x}", self.csr.read(MIE)); }
             if self.debug { println!("[INFO] ==Register==\n{}", self.register); }
             if self.step { stdin().read_line(&mut input).unwrap(); }
+
+            //if self.csr.read(MIE) == 0x2a2 { self.debug = true; self.step = true; }
 
             match self.watchpoint.0 {
                 Registers::PC   => {
@@ -211,23 +217,17 @@ impl Cpu {
 
             match self.execute() {
                 Ok(_)           => {},
-                Err(exception)  => {
-                    exception.take_trap(self);
-                    continue;
-                },
+                Err(exception)  => exception.take_trap(self),
             }
 
             self.pc = self.pc.wrapping_add(4);
             self.tick();
             
             match self.check_interrupt() {
-                Some(mut interrupt) => {
-                    interrupt.take_trap(self);
-                    continue;
-                },
-                None            => {},
+                Some(mut interrupt) => interrupt.take_trap(self),
+                None                => {},
             }
-
+            
             self.clock = self.clock.wrapping_add(1);
             self.csr.write(CYCLE, self.clock);
         }
@@ -262,27 +262,21 @@ impl Cpu {
         let pending = self.csr.read(MIE) & self.csr.read(MIP);
 
         if (pending & MIP_MEIP) != 0 {
-            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MEIP);
             return Some(Interrupt::MachineExtIrq(irq as u64));
         }
         else if (pending & MIP_MSIP) != 0 {
-            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MSIP);
             return Some(Interrupt::MachineSoftwareIrq);
         }
         else if (pending & MIP_MTIP) != 0 {
-            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MTIP);
             return Some(Interrupt::MachineTimerIrq);
         }
         else if (pending & MIP_SEIP) != 0 {
-            self.csr.write(MIP, self.csr.read(MIP) & !MIP_MEIP);
             return Some(Interrupt::SupervisorExtIrq(irq as u64));
         }
         else if (pending & MIP_SSIP) != 0 {
-            self.csr.write(MIP, self.csr.read(MIP) & !MIP_SSIP);
             return Some(Interrupt::SupervisorSoftwareIrq);
         }
         else if (pending & MIP_STIP) != 0 {
-            self.csr.write(MIP, self.csr.read(MIP) & !MIP_STIP);
             return Some(Interrupt::SupervisorTimerIrq);
         }
         
@@ -296,9 +290,9 @@ impl Cpu {
 
     pub fn execute(&mut self) -> Result<(), Exception> {
         // Decode instruction
-        let imm:    u32 = ((self.instruction >> 12) & 0xF_FFFF) as u32;
+        let imm:    u32     = ((self.instruction >> 12) & 0xF_FFFF) as u32;
         let rd:     usize   = ((self.instruction >> 7) & 0x1F) as usize;
-        let opcode: u8 = (self.instruction & 0x7F) as u8;
+        let opcode: u8      = (self.instruction & 0x7F) as u8;
         
         match opcode {
             // LOAD
@@ -430,12 +424,12 @@ impl Cpu {
 
     fn decode_itype(&mut self) -> Result<(), Exception> {
         // Decode instruction
-        let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
+        let mut imm:    i16     = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
-        let shamt: u8       = ((self.instruction >> 20) & 0x1FF) as u8;
-        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
-        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
+        let shamt:      u8      = ((self.instruction >> 20) & 0x1FF) as u8;
+        let rs1:        usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3:     u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:         usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // ADDI
@@ -570,11 +564,11 @@ impl Cpu {
 
     fn decode_load(&mut  self) -> Result<(), Exception> {
         // Decode instruction
-        let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
+        let mut imm:    i16     = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & 0xFFF) - 0b1000_0000_0000;     // sign extension
-        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
-        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
+        let rs1:        usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3:     u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:         usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // LB
@@ -695,16 +689,12 @@ impl Cpu {
                     0b0001_0000_0010    => {
                         let spp = self.csr.read_bit(SSTATUS, 8);    // Get SPP bits
                         let spie = self.csr.read_bit(SSTATUS, 5);   // Get SPIE bit
-                        self.csr.write_bit(SSTATUS, 3, spie);          // Set SIE bit
+                        self.csr.write_bit(SSTATUS, 1, spie);       // Set SIE bit
                         self.csr.set_priv_level(spp as u8);
-                        self.csr.write_bit(SSTATUS, 7, true);
-                        self.csr.write_bits(SSTATUS, 11..12+1, PrivLevel::USER as u64);
+                        self.csr.write_bit(SSTATUS, 5, true);
+                        self.csr.write_bit(SSTATUS, 8, false);
 
                         self.pc = self.csr.read(SEPC) as usize;
-                        if self.pc == 0 {
-                            std::process::exit(0);
-                        }
-
                         self.pc -= 4;
 
                     },
@@ -712,16 +702,12 @@ impl Cpu {
                     0b0011_0000_0010    => {
                         let mpp = self.csr.read_bits(MSTATUS, 11..12+1);    // Get MPP bits
                         let mpie = self.csr.read_bit(MSTATUS, 7);           // Get MPIE bit
-                        self.csr.write_bit(MSTATUS, 3, mpie);          // Set MIE bit
+                        self.csr.write_bit(MSTATUS, 3, mpie);               // Set MIE bit
                         self.csr.set_priv_level(mpp as u8);
                         self.csr.write_bit(MSTATUS, 7, true);
                         self.csr.write_bits(MSTATUS, 11..12+1, PrivLevel::USER as u64);
 
                         self.pc = self.csr.read(MEPC) as usize;
-                        if self.pc == 0 {
-                            std::process::exit(0);
-                        }
-
                         self.pc -= 4;
                     },
                     _   => match funct7 {
@@ -800,12 +786,12 @@ impl Cpu {
 
     fn decode_rv64i_itype(&mut self) -> Result<(), Exception> {
         // Decode instruction
-        let mut imm:    i16 = ((self.instruction >> 20) & 0xFFF) as i16;
+        let mut imm:    i16     = ((self.instruction >> 20) & 0xFFF) as i16;
         imm = ((imm + (0b1000_0000_0000)) & (0xFFF)) - 0b1000_0000_0000;     // sign extension
-        let funct7: u8      = ((self.instruction >> 25) & 0x7F) as u8;
-        let rs1:    usize   = ((self.instruction >> 15) & 0x1F) as usize;
-        let funct3: u8      = ((self.instruction >> 12) & 0x7) as u8;
-        let rd:     usize   = ((self.instruction >> 7)  & 0x1F) as usize;
+        let funct7:     u8      = ((self.instruction >> 25) & 0x7F) as u8;
+        let rs1:        usize   = ((self.instruction >> 15) & 0x1F) as usize;
+        let funct3:     u8      = ((self.instruction >> 12) & 0x7) as u8;
+        let rd:         usize   = ((self.instruction >> 7)  & 0x1F) as usize;
 
         match funct3 {
             // ADDIW
@@ -1177,13 +1163,13 @@ impl Cpu {
 }
 
 fn inspect_instruciton(instruction: Instruction) -> String {
-    let funct12:    u16 = ((instruction >> 20) & 0xFFF) as u16;
-    let funct7: u8      = ((instruction >> 25) & 0x7F) as u8;
-    let _rs2:    usize   = ((instruction >> 20) & 0x1F) as usize;
-    let _rs1:    usize   = ((instruction >> 15) & 0x1F) as usize;
-    let funct3: u8      = ((instruction >> 12) & 0x7) as u8;
-    let _rd:     usize   = ((instruction >> 7) & 0x1F) as usize;
-    let opcode: u8      = (instruction & 0x7F) as u8;
+    let funct12:    u16     = ((instruction >> 20) & 0xFFF) as u16;
+    let funct7:     u8      = ((instruction >> 25) & 0x7F) as u8;
+    let _rs2:       usize   = ((instruction >> 20) & 0x1F) as usize;
+    let _rs1:       usize   = ((instruction >> 15) & 0x1F) as usize;
+    let funct3:     u8      = ((instruction >> 12) & 0x7) as u8;
+    let _rd:        usize   = ((instruction >> 7) & 0x1F) as usize;
+    let opcode:     u8      = (instruction & 0x7F) as u8;
 
     let mut output = format!("[INFO] instruction(0x{:08x})", instruction);
 

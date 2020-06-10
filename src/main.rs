@@ -2,7 +2,7 @@ mod test;
 pub mod emulator;
 
 use structopt::StructOpt;
-use emulator::cpu::Cpu;
+use emulator::cpu::{ Cpu, Registers, WatchExec };
 
 #[derive(Debug, StructOpt)]
 struct Opt {
@@ -14,10 +14,13 @@ struct Opt {
     #[structopt(short, long)]
     pub step: bool,
 
-    /// Input file
+    /// Kernel
     #[structopt(short, long)]
-    pub file: String,
+    pub kernel: String,
 
+    /// disk image
+    #[structopt(short, long)]
+    pub disk: String,
 }
 
 fn main() {
@@ -27,8 +30,9 @@ fn main() {
     let mut cpu = Cpu::new();
     cpu.debug = opt.debug;
     cpu.step = opt.step;
-    cpu.load(&opt.file);
-    //cpu.watch(Registers::PC, 0x80001264, WatchExec::STOP);
+    cpu.load_dram(&opt.kernel);
+    cpu.load_disk(&opt.disk);
+    //cpu.watch(Registers::PC, 0x800029cc, WatchExec::STOP);
 
     cpu.run();
 }

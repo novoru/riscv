@@ -425,7 +425,8 @@ impl Csr {
 				self.csr[MIP as usize] &= !0x222;
 				self.csr[MIP as usize] |= data & 0x222;
             },
-            _   => self.csr[csr as usize] = data,
+            MIDELEG => self.csr[csr as usize] = data & 0x666,
+            _       => self.csr[csr as usize] = data,
         }
     }
 

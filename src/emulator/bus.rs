@@ -65,10 +65,18 @@ impl Bus {
         }
     }
 
+    pub fn load_dram(&mut self, binary: Vec<u8>) {
+        self.dram.load(binary);
+    }
+
+    pub fn load_disk(&mut self, binary: Vec<u8>) {
+        self.virtio.load(binary);
+    }
+
     pub fn tick(&mut self, mip: &mut u64) {
 
         self.clint.tick(mip);
-        //self.virtio.tick(&mut self.dram);
+        self.virtio.tick(&mut self.dram);
         self.uart0.tick();
         self.plic.tick(false, self.uart0.is_interrupting(), mip);
         self.clock = self.clock.wrapping_add(1);
